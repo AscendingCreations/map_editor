@@ -31,6 +31,7 @@ mod collection;
 mod tileset;
 mod game_input;
 mod map;
+mod map_data;
 
 use renderer::*;
 use interface::*;
@@ -39,6 +40,7 @@ use collection::*;
 use tileset::*;
 use game_input::*;
 use map::*;
+use map_data::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 enum Axis {
@@ -107,7 +109,8 @@ async fn main() -> Result<(), AscendingError> {
     let window = Arc::new(
         WindowBuilder::new()
             .with_title("Map Editor")
-            .with_inner_size(PhysicalSize::new(949, 802))
+            .with_inner_size(PhysicalSize::new((949.0 * ZOOM_LEVEL) as u32, 
+                                                (802.0 * ZOOM_LEVEL) as u32))
             .with_visible(false)
             .with_enabled_buttons({
                 let mut buttons = WindowButtons::all();
@@ -168,6 +171,7 @@ async fn main() -> Result<(), AscendingError> {
         Some(AtlasGroup::new(
             &mut renderer,
             wgpu::TextureFormat::Rgba8UnormSrgb,
+            true,
         ))
     })
     .take(4)
@@ -299,22 +303,22 @@ async fn main() -> Result<(), AscendingError> {
 
                 gameinput.last_mouse_pos = mouse_pos.clone();
 
-                handle_input(InputType::MouseLeftDown, 
+                handle_input(&mut renderer, &resource, InputType::MouseLeftDown, 
                     &Vec2::new(mouse_pos.0, mouse_pos.1),
                     &size,
                     &mut gameinput,
-                    &gui, 
+                    &mut gui, 
                     &mut tileset,
                     &mut mapview);
             } else {
                 if gameinput.last_mouse_pos != mouse_pos {
                     gameinput.last_mouse_pos = mouse_pos.clone();
                     
-                    handle_input(InputType::MouseLeftDownMove, 
+                    handle_input(&mut renderer, &resource, InputType::MouseLeftDownMove, 
                         &Vec2::new(mouse_pos.0, mouse_pos.1),
                         &size,
                         &mut gameinput,
-                        &gui,
+                        &mut gui,
                         &mut tileset,
                         &mut mapview);
                 }
@@ -323,14 +327,16 @@ async fn main() -> Result<(), AscendingError> {
             if gameinput.last_mouse_pos != mouse_pos {
                 gameinput.last_mouse_pos = mouse_pos.clone();
                 
-                handle_input(InputType::MouseMove, 
+                handle_input(&mut renderer, &resource, InputType::MouseMove, 
                     &Vec2::new(mouse_pos.0, mouse_pos.1),
                     &size,
                     &mut gameinput,
-                    &gui,
+                    &mut gui,
                     &mut tileset,
                     &mut mapview);
             }
+            gui.reset_button_click();
+            gui.tileset_list.scrollbar.release_scrollbar();
             did_key_press[action_index(Action::Select)] = false;
         }
 
@@ -342,17 +348,50 @@ async fn main() -> Result<(), AscendingError> {
         graphics.system.update_screen(&renderer, [new_size.width, new_size.height]);
 
         // This adds the Image data to the Buffer for rendering.
-        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut renderer); // GUI
         graphics.map_renderer.map_update(&mut tileset.map, &mut renderer); // Tileset
-        graphics.image_renderer.image_update(&mut tileset.selection, &mut renderer); // Tileset Selection
+        graphics.image_renderer.image_update(&mut tileset.selection, &mut renderer, &mut graphics.image_atlas.atlas); // Tileset Selection
         // Map View
         mapview.maps.iter_mut().for_each(|map| {
             graphics.map_renderer.map_update(map, &mut renderer);
         });
         mapview.link_map_selection.iter_mut().for_each(|image| {
-            graphics.image_renderer.image_update(image, &mut renderer);
+            graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas.atlas);
         });
-        graphics.image_renderer.image_update(&mut mapview.selection_preview, &mut renderer);
+        graphics.image_renderer.image_update(&mut mapview.selection_preview, &mut renderer, &mut graphics.image_atlas.atlas);
+        // GUI
+        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut renderer, &mut graphics.image_atlas.atlas);
+        gui.buttons.iter_mut().for_each(|button| {
+            graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas.atlas);
+        });
+        match gui.current_setting_tab {
+            TAB_LAYER => {
+                for i in 0..MapLayers::Count as usize {
+                    graphics.image_renderer.image_update(&mut gui.tab_labels[i].button, &mut renderer, &mut graphics.image_atlas.atlas);
+                    graphics.text_renderer
+                        .text_update(&mut gui.tab_labels[i].text, &mut graphics.text_atlas, &mut renderer)
+                        .unwrap();
+                }
+            },
+            TAB_ATTRIBUTE => {},
+            TAB_PROPERTIES => {},
+            _ => {},
+        }
+        // Tileset List
+        if gui.tileset_list.visible {
+            graphics.image_renderer.image_update(&mut gui.tileset_list.bg, &mut renderer, &mut graphics.image_atlas.atlas);
+            gui.tileset_list.texts.iter_mut().for_each(|text| {
+                graphics.text_renderer
+                            .text_update(text, &mut graphics.text_atlas, &mut renderer)
+                            .unwrap();
+            });
+            gui.tileset_list.selection_buttons.iter_mut().for_each(|button| {
+                graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas.atlas);
+            });
+            gui.tileset_list.scrollbar.images.iter_mut().for_each(|image| {
+                graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas.atlas);
+            });
+        }
+
         // Labels
         gui.labels.iter_mut().for_each(|text| {
             graphics.text_renderer

@@ -46,6 +46,19 @@ impl MapLayers {
             MapLayers::Fringe2 | MapLayers::Count => 2.0,
         }
     }
+
+    pub fn as_str<'a>(layer: u32) -> &'a str {
+        match layer {
+            0 => "Ground",
+            1 => "Mask",
+            2 => "Mask 2",
+            3 => "Anim 1",
+            4 => "Anim 2",
+            5 => "Anim 3",
+            6 => "Fringe",
+            _ => "Fringe 2",
+        }
+    }
 }
 
 #[derive(Copy, Clone)]

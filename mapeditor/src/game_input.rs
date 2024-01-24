@@ -1,12 +1,14 @@
 use graphics::*;
 use serde::{Deserialize, Serialize};
 use winit::dpi::PhysicalSize;
+use cosmic_text::{Attrs, Metrics};
 
 use crate::Content;
 use crate::interface::*;
 use crate::tileset::*;
 use crate::map::*;
-use crate::collection::TEXTURE_SIZE;
+use crate::resource::*;
+use crate::collection::{TEXTURE_SIZE, ZOOM_LEVEL};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Action {
@@ -90,64 +92,139 @@ fn get_map_pos(screen_pos: Vec2, mapview: &MapView) -> Vec2 {
     )
 }
 
-pub fn handle_input(inputtype: InputType, 
+fn interact_with_map(tile_pos: Vec2, 
+                    gui: &mut Interface,
+                    tileset: &mut Tileset,
+                    mapview: &mut MapView)
+{
+    match gui.current_setting_tab {
+        TAB_LAYER => {
+            if gui.current_tool == TOOL_DRAW {
+                mapview.set_tile_group(tile_pos, gui.get_tab_option_data(), 
+                                &tileset.map, 
+                                tileset.select_start, 
+                                tileset.select_size);
+            } else if gui.current_tool == TOOL_ERASE {
+                mapview.delete_tile_group(tile_pos, gui.get_tab_option_data(),  
+                                tileset.select_size);
+            }
+        }
+        TAB_ATTRIBUTE => {},
+        TAB_PROPERTIES => {},
+        _ => {},
+    }
+}
+
+pub fn handle_input(renderer: &mut GpuRenderer,
+                    resource: &TextureAllocation,
+                    inputtype: InputType, 
                     mouse_pos: &Vec2, 
                     screen_size: &PhysicalSize<f32>,
                     gameinput: &mut GameInput,
-                    _gui: &Interface, 
+                    gui: &mut Interface, 
                     tileset: &mut Tileset,
                     mapview: &mut MapView,) 
 {
     // We convert the mouse position to render position as the y pos increase upward
-    let screen_pos = Vec2::new(mouse_pos.x, screen_size.height - mouse_pos.y);
+    let screen_pos = Vec2::new(mouse_pos.x / ZOOM_LEVEL, (screen_size.height - mouse_pos.y) / ZOOM_LEVEL);
 
     match inputtype {
         InputType::MouseLeftDown => {
-            // Check if mouse position is pointing to our tileset
-            if in_tileset(screen_pos, tileset) {
-                // Calculate the tile position on the tileset based on mouse position
-                let tile_map_pos = get_tileset_pos(screen_pos, tileset);
-                gameinput.tileset_start = tile_map_pos.clone();
-                gameinput.tileset_end = tile_map_pos.clone();
-                gameinput.return_size = tileset.set_selection(gameinput.tileset_start, gameinput.tileset_end);
-                mapview.change_selection_preview_size(gameinput.return_size);
-
-                gameinput.presstype = PressType::PressTileset;
+            if gui.tileset_list.scrollbar.in_scrollbar(screen_pos) {
+                gui.tileset_list.scrollbar.hold_scrollbar(screen_pos.y);
             }
 
-            // Check if mouse position is pointing to our map view
-            if in_map(screen_pos, mapview) {
-                // Calculate the tile position on the map based on mouse position
-                let tile_map_pos = get_map_pos(screen_pos, mapview);
-                mapview.set_tile_group(tile_map_pos, 0, 
-                                &tileset.map, 
-                                tileset.select_start, 
-                                tileset.select_size);
-                
-                gameinput.presstype = PressType::PressMap;
-            }
-        },
-        InputType::MouseLeftDownMove => {
-            // Check if mouse position is pointing to our tileset
-            if in_tileset(screen_pos, tileset) && gameinput.presstype == PressType::PressTileset {
-                // Calculate the tile position on the tileset based on mouse position
-                let tile_map_pos = get_tileset_pos(screen_pos, tileset);
-                if gameinput.tileset_end != tile_map_pos { 
+            if !gui.tileset_list.scrollbar.in_hold {
+                // Check if mouse position is pointing to our tileset
+                if in_tileset(screen_pos, tileset) {
+                    // Calculate the tile position on the tileset based on mouse position
+                    let tile_map_pos = get_tileset_pos(screen_pos, tileset);
+                    gameinput.tileset_start = tile_map_pos.clone();
                     gameinput.tileset_end = tile_map_pos.clone();
                     gameinput.return_size = tileset.set_selection(gameinput.tileset_start, gameinput.tileset_end);
                     mapview.change_selection_preview_size(gameinput.return_size);
+
+                    gameinput.presstype = PressType::PressTileset;
+                }
+
+                // Check if mouse position is pointing to our map view
+                if in_map(screen_pos, mapview) {
+                    interact_with_map(get_map_pos(screen_pos, mapview), gui, tileset, mapview);
+                    gameinput.presstype = PressType::PressMap;
+                }
+
+                // Tools
+                let click_button = gui.click_button(screen_pos);
+                if !click_button.is_none() {
+                    let button_index = click_button.unwrap();
+                    match button_index {
+                        TOOL_LOAD => { println!("To Do!"); },
+                        TOOL_SAVE => { println!("To Do!"); },
+                        TOOL_UNDO => { println!("To Do!"); },
+                        TOOL_FILL => { println!("To Do!"); },
+                        TOOL_EYEDROP => { println!("To Do!"); },
+                        TOOL_DRAW | TOOL_ERASE => {
+                            gui.set_tool(button_index);
+                        },
+                        TAB_ATTRIBUTE | TAB_LAYER | TAB_PROPERTIES => {
+                            gui.set_tab(button_index);
+                        },
+                        BUTTON_TILESET => {
+                            if gui.tileset_list.visible {
+                                gui.tileset_list.hide();
+                            } else {
+                                gui.tileset_list.show();
+                            }
+                        },
+                        _ => {},
+                    }
+                }
+
+                // Tab Options
+                let click_tab_option = gui.click_tab_option(screen_pos);
+                if !click_tab_option.is_none() {
+                    gui.select_tab_option(click_tab_option.unwrap());
+                }
+
+                // Tileset List
+                if gui.tileset_list.select_list(screen_pos) {
+                    // This will process the switching of tileset
+                    let tileset_index = gui.tileset_list.selected_tileset;
+                    gui.labels[LABEL_TILESET].set_text(renderer, &resource.tilesheet[tileset_index].name, Attrs::new());
+                    tileset.change_tileset(resource, tileset_index);
+                    gui.tileset_list.hide();
                 }
             }
+        },
+        InputType::MouseLeftDownMove => {
+            if !gui.tileset_list.scrollbar.in_hold {
+                // Check if mouse position is pointing to our tileset
+                if in_tileset(screen_pos, tileset) && gameinput.presstype == PressType::PressTileset {
+                    // Calculate the tile position on the tileset based on mouse position
+                    let tile_map_pos = get_tileset_pos(screen_pos, tileset);
+                    if gameinput.tileset_end != tile_map_pos { 
+                        gameinput.tileset_end = tile_map_pos.clone();
+                        gameinput.return_size = tileset.set_selection(gameinput.tileset_start, gameinput.tileset_end);
+                        mapview.change_selection_preview_size(gameinput.return_size);
+                    }
+                }
 
-            // Check if mouse position is pointing to our map view
-            if in_map(screen_pos, mapview) && gameinput.presstype == PressType::PressMap {
-                // Calculate the tile position on the map based on mouse position
-                let tile_map_pos = get_map_pos(screen_pos, mapview);
-                mapview.set_tile_group(tile_map_pos, 0, 
-                                &tileset.map, 
-                                tileset.select_start, 
-                                tileset.select_size);
-                mapview.hover_selection_preview(tile_map_pos);
+                // Check if mouse position is pointing to our map view
+                if in_map(screen_pos, mapview) && gameinput.presstype == PressType::PressMap {
+                    // Calculate the tile position on the map based on mouse position
+                    let tile_map_pos = get_map_pos(screen_pos, mapview);
+                    
+                    interact_with_map(tile_map_pos, gui, tileset, mapview);
+
+                    mapview.hover_selection_preview(tile_map_pos);
+                }
+            } else {
+                // Update our tileset list based on the scrollbar value
+                gui.tileset_list.scrollbar.move_scrollbar(screen_pos.y);
+                if gui.tileset_list.update_scroll(gui.tileset_list.scrollbar.cur_value) {
+                    gui.tileset_list.update_list(resource, renderer);
+                }
+                gui.tileset_list.scrollbar.set_hover(screen_pos);
             }
         },
         InputType::MouseMove => {
@@ -159,6 +236,15 @@ pub fn handle_input(inputtype: InputType,
                 let tile_map_pos = get_map_pos(screen_pos, mapview);
                 mapview.hover_selection_preview(tile_map_pos);
             }
+
+            // Buttons
+            gui.hover_button(screen_pos);
+            // Tab Options
+            gui.hover_tab_option(screen_pos);
+            // Tileset List Selection
+            gui.tileset_list.hover_selection(screen_pos);
+            // Scrollbar
+            gui.tileset_list.scrollbar.set_hover(screen_pos);
         },
     }
 }

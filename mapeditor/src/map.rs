@@ -40,7 +40,7 @@ impl MapView {
 
         // We add the link selection overlay above the link map as a selecting effect
         for count in 0..8 {
-            let mut image = Image::new(Some(resource.white), renderer, 1);
+            let mut image = Image::new(Some(resource.white.allocation), renderer, 1);
 
             // We set the link selection image at the same position as the linked map
             // We add +1 on the count as the linked map started on index 1 instead of 0
@@ -62,7 +62,7 @@ impl MapView {
             link_map_selection.push(image);
         }
 
-        let mut selection_preview = Image::new(Some(resource.white), renderer, 1);
+        let mut selection_preview = Image::new(Some(resource.white.allocation), renderer, 1);
 
         // Setup the selection preview image settings
         selection_preview.pos = Vec3::new(maps[0].pos.x, maps[0].pos.y, 4.0);
@@ -106,13 +106,29 @@ impl MapView {
         for x in 0..selection_size.x as u32 {
             for y in 0..selection_size.y as u32 {
                 // We load the tile data from the tileset
-                let tiledata = tileset.get_tile((start_pos.x as u32 + x, start_pos.y as u32 + y, layer));
+                let tiledata = tileset.get_tile((start_pos.x as u32 + x, start_pos.y as u32 + y, 0));
 
                 // Make sure we only add tile that are not empty
                 if tiledata.texture_id > 0 {
                     // Make sure we wont set map outside the map size limit
                     if (set_pos.x as u32 + x) < 32 && (set_pos.y as u32 + y) < 32 {
                         self.maps[0].set_tile((set_pos.x as u32 + x, set_pos.y as u32 + y, layer), tiledata);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn delete_tile_group(&mut self, set_pos: Vec2, layer: u32, size: Vec2) {
+        for x in 0..size.x as u32 {
+            for y in 0..size.y as u32 {
+                // Make sure we wont set map outside the map size limit
+                if (set_pos.x as u32 + x) < 32 && (set_pos.y as u32 + y) < 32 {
+                    let texture_id = self.maps[0].get_tile((set_pos.x as u32 + x, set_pos.y as u32 + y, layer)).texture_id;
+                    if texture_id > 0 {
+                        self.maps[0].set_tile(
+                            (set_pos.x as u32 + x, set_pos.y as u32 + y, layer), 
+                            TileData::default());
                     }
                 }
             }
