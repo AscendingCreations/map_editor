@@ -8,6 +8,7 @@ use crate::interface::*;
 use crate::tileset::*;
 use crate::map::*;
 use crate::resource::*;
+use crate::map_data::*;
 use crate::collection::{TEXTURE_SIZE, ZOOM_LEVEL};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,6 +40,8 @@ pub struct GameInput {
     tileset_start: Vec2,
     tileset_end: Vec2,
     return_size: Vec2,
+    // Map
+    selected_link_map: Option<usize>,
 }
 
 impl GameInput {
@@ -49,6 +52,7 @@ impl GameInput {
             tileset_start: Vec2::new(0.0, 0.0),
             tileset_end: Vec2::new(0.0, 0.0),
             return_size: Vec2::new(1.0, 1.0),
+            selected_link_map: None,
         }
     }
 }
@@ -95,7 +99,8 @@ fn get_map_pos(screen_pos: Vec2, mapview: &MapView) -> Vec2 {
 fn interact_with_map(tile_pos: Vec2, 
                     gui: &mut Interface,
                     tileset: &mut Tileset,
-                    mapview: &mut MapView)
+                    mapview: &mut MapView,
+                    editor_data: &mut EditorData)
 {
     match gui.current_setting_tab {
         TAB_LAYER => {
@@ -104,9 +109,11 @@ fn interact_with_map(tile_pos: Vec2,
                                 &tileset.map, 
                                 tileset.select_start, 
                                 tileset.select_size);
+                editor_data.set_map_change();
             } else if gui.current_tool == TOOL_ERASE {
                 mapview.delete_tile_group(tile_pos, gui.get_tab_option_data(),  
                                 tileset.select_size);
+                editor_data.set_map_change();
             }
         }
         TAB_ATTRIBUTE => {},
@@ -123,7 +130,9 @@ pub fn handle_input(renderer: &mut GpuRenderer,
                     gameinput: &mut GameInput,
                     gui: &mut Interface, 
                     tileset: &mut Tileset,
-                    mapview: &mut MapView,) 
+                    mapview: &mut MapView,
+                    editor_data: &mut EditorData
+                ) 
 {
     // We convert the mouse position to render position as the y pos increase upward
     let screen_pos = Vec2::new(mouse_pos.x / ZOOM_LEVEL, (screen_size.height - mouse_pos.y) / ZOOM_LEVEL);
@@ -149,20 +158,38 @@ pub fn handle_input(renderer: &mut GpuRenderer,
 
                 // Check if mouse position is pointing to our map view
                 if in_map(screen_pos, mapview) {
-                    interact_with_map(get_map_pos(screen_pos, mapview), gui, tileset, mapview);
+                    interact_with_map(get_map_pos(screen_pos, mapview), gui, tileset, mapview, editor_data);
                     gameinput.presstype = PressType::PressMap;
+                }
+
+                // Linked Map
+                if gameinput.selected_link_map.is_some() {
+                    let direction = convert_to_dir(gameinput.selected_link_map.unwrap());
+                    let temp_key = editor_data.move_map(direction);
+                    if temp_key.is_some() {
+                        // We will store a temporary map data when changes happen
+                        editor_data.save_map_data(&mapview.maps[0], temp_key);
+                    };
+                    // Load the initial map
+                    editor_data.load_map_data(mapview);
+                    editor_data.load_link_maps(mapview);
                 }
 
                 // Tools
                 let click_button = gui.click_button(screen_pos);
-                if !click_button.is_none() {
+                if click_button.is_some() {
                     let button_index = click_button.unwrap();
                     match button_index {
                         TOOL_LOAD => { println!("To Do!"); },
-                        TOOL_SAVE => { println!("To Do!"); },
+                        TOOL_SAVE => { 
+                            editor_data.save_map_data(&mapview.maps[0], None);
+                            println!("Map Saved!");
+                        },
                         TOOL_UNDO => { println!("To Do!"); },
                         TOOL_FILL => { println!("To Do!"); },
-                        TOOL_EYEDROP => { println!("To Do!"); },
+                        TOOL_EYEDROP => {
+                            println!("Current Change {:?}", &editor_data.did_map_change);
+                        },
                         TOOL_DRAW | TOOL_ERASE => {
                             gui.set_tool(button_index);
                         },
@@ -182,7 +209,7 @@ pub fn handle_input(renderer: &mut GpuRenderer,
 
                 // Tab Options
                 let click_tab_option = gui.click_tab_option(screen_pos);
-                if !click_tab_option.is_none() {
+                if click_tab_option.is_some() {
                     gui.select_tab_option(click_tab_option.unwrap());
                 }
 
@@ -214,7 +241,7 @@ pub fn handle_input(renderer: &mut GpuRenderer,
                     // Calculate the tile position on the map based on mouse position
                     let tile_map_pos = get_map_pos(screen_pos, mapview);
                     
-                    interact_with_map(tile_map_pos, gui, tileset, mapview);
+                    interact_with_map(tile_map_pos, gui, tileset, mapview, editor_data);
 
                     mapview.hover_selection_preview(tile_map_pos);
                 }
@@ -229,7 +256,7 @@ pub fn handle_input(renderer: &mut GpuRenderer,
         },
         InputType::MouseMove => {
             // We check if we can create the effect if the linked map is being hover
-            mapview.hover_linked_selection(screen_pos);
+            gameinput.selected_link_map = mapview.hover_linked_selection(screen_pos);
 
             // Calculate the tile position on the map based on mouse position
             if in_map(screen_pos, mapview) {

@@ -28,53 +28,53 @@ pub struct TextureAllocation {
 }
 
 impl TextureAllocation {
-    pub fn new(atlases: &mut Vec<AtlasGroup>, renderer: &GpuRenderer) -> Result<Self, AscendingError> {
+    pub fn new(atlases: &mut Vec<AtlasSet>, renderer: &GpuRenderer) -> Result<Self, AscendingError> {
         // This is how we load a image into a atlas/Texture. It returns the location of the image
         // within the texture. its x, y, w, h.  Texture loads the file. group_uploads sends it to the Texture
         // renderer is used to upload it to the GPU when done.
         let bg_layout = TextureData {name: "layout.png".to_string(), 
             allocation: Texture::from_file("images/gui/layout.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let tool_icon = TextureData {name: "tool_buttons.png".to_string(), 
             allocation: Texture::from_file("images/gui/tool_buttons.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let tab_option = TextureData {name: "tab_option_button.png".to_string(), 
             allocation: Texture::from_file("images/gui/tab_option_button.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let tab_icon = TextureData {name: "map_setting_buttons.png".to_string(), 
             allocation: Texture::from_file("images/gui/map_setting_buttons.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let tileset_button = TextureData {name: "tileset_selection_button.png".to_string(), 
             allocation: Texture::from_file("images/gui/tileset_selection_button.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let tileset_list_bg = TextureData {name: "tileset_list_bg.png".to_string(), 
             allocation: Texture::from_file("images/gui/tileset_list_bg.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
         
         let tileset_list_select = TextureData {name: "tileset_list_select.png".to_string(), 
             allocation: Texture::from_file("images/gui/tileset_list_select.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let scrollbar = TextureData {name: "scrollbar.png".to_string(), 
             allocation: Texture::from_file("images/gui/scrollbar.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let white = TextureData {name: "white.png".to_string(), 
             allocation: Texture::from_file("images/gui/white.png")?
-            .group_upload(&mut atlases[0], renderer)
+            .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
         let mut tilesheet = Vec::with_capacity(MAX_TILESHEET as usize);

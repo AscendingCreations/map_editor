@@ -7,8 +7,8 @@ where
     /// World Camera Controls and time. Deturmines how the world is looked at.
     pub system: System<Controls>,
     /// Atlas Groups for Textures in GPU
-    pub image_atlas: AtlasGroup,
-    pub map_atlas: AtlasGroup,
+    pub image_atlas: AtlasSet,
+    pub map_atlas: AtlasSet,
     pub text_atlas: TextAtlas,
     /// Rendering Buffers and other shared data.
     pub text_renderer: TextRenderer,

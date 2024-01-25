@@ -102,6 +102,9 @@ async fn main() -> Result<(), AscendingError> {
         error!("PANIC: {}, BACKTRACE: {:?}", panic_info, bt);
     }));
 
+    // Create the directory for our map data
+    fs::create_dir_all("./data/maps/")?;
+
     // Starts an event gathering type for the window.
     let event_loop = EventLoop::new()?;
 
@@ -167,8 +170,8 @@ async fn main() -> Result<(), AscendingError> {
     let mut size = renderer.size();
 
     // We generate Texture atlases to use with out types.
-    let mut atlases: Vec<AtlasGroup> = iter::from_fn(|| {
-        Some(AtlasGroup::new(
+    let mut atlases: Vec<AtlasSet> = iter::from_fn(|| {
+        Some(AtlasSet::new(
             &mut renderer,
             wgpu::TextureFormat::Rgba8UnormSrgb,
             true,
@@ -192,6 +195,11 @@ async fn main() -> Result<(), AscendingError> {
     let mut tileset = Tileset::new(&resource, &mut renderer);
     let mut gameinput = GameInput::new();
     let mut mapview = MapView::new(&resource, &mut renderer);
+    let mut editor_data = EditorData::new()?;
+
+    // Load the initial map
+    editor_data.load_map_data(&mut mapview);
+    editor_data.load_link_maps(&mut mapview);
 
     // setup our system which includes Camera and projection as well as our controls.
     // for the camera.
@@ -309,7 +317,8 @@ async fn main() -> Result<(), AscendingError> {
                     &mut gameinput,
                     &mut gui, 
                     &mut tileset,
-                    &mut mapview);
+                    &mut mapview,
+                    &mut editor_data);
             } else {
                 if gameinput.last_mouse_pos != mouse_pos {
                     gameinput.last_mouse_pos = mouse_pos.clone();
@@ -320,7 +329,8 @@ async fn main() -> Result<(), AscendingError> {
                         &mut gameinput,
                         &mut gui,
                         &mut tileset,
-                        &mut mapview);
+                        &mut mapview,
+                        &mut editor_data);
                 }
             }
         } else {
@@ -333,7 +343,8 @@ async fn main() -> Result<(), AscendingError> {
                     &mut gameinput,
                     &mut gui,
                     &mut tileset,
-                    &mut mapview);
+                    &mut mapview,
+                    &mut editor_data);
             }
             gui.reset_button_click();
             gui.tileset_list.scrollbar.release_scrollbar();
@@ -349,24 +360,24 @@ async fn main() -> Result<(), AscendingError> {
 
         // This adds the Image data to the Buffer for rendering.
         graphics.map_renderer.map_update(&mut tileset.map, &mut renderer); // Tileset
-        graphics.image_renderer.image_update(&mut tileset.selection, &mut renderer, &mut graphics.image_atlas.atlas); // Tileset Selection
+        graphics.image_renderer.image_update(&mut tileset.selection, &mut renderer, &mut graphics.image_atlas); // Tileset Selection
         // Map View
         mapview.maps.iter_mut().for_each(|map| {
             graphics.map_renderer.map_update(map, &mut renderer);
         });
         mapview.link_map_selection.iter_mut().for_each(|image| {
-            graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas.atlas);
+            graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas);
         });
-        graphics.image_renderer.image_update(&mut mapview.selection_preview, &mut renderer, &mut graphics.image_atlas.atlas);
+        graphics.image_renderer.image_update(&mut mapview.selection_preview, &mut renderer, &mut graphics.image_atlas);
         // GUI
-        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut renderer, &mut graphics.image_atlas.atlas);
+        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut renderer, &mut graphics.image_atlas);
         gui.buttons.iter_mut().for_each(|button| {
-            graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas.atlas);
+            graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas);
         });
         match gui.current_setting_tab {
             TAB_LAYER => {
                 for i in 0..MapLayers::Count as usize {
-                    graphics.image_renderer.image_update(&mut gui.tab_labels[i].button, &mut renderer, &mut graphics.image_atlas.atlas);
+                    graphics.image_renderer.image_update(&mut gui.tab_labels[i].button, &mut renderer, &mut graphics.image_atlas);
                     graphics.text_renderer
                         .text_update(&mut gui.tab_labels[i].text, &mut graphics.text_atlas, &mut renderer)
                         .unwrap();
@@ -378,17 +389,17 @@ async fn main() -> Result<(), AscendingError> {
         }
         // Tileset List
         if gui.tileset_list.visible {
-            graphics.image_renderer.image_update(&mut gui.tileset_list.bg, &mut renderer, &mut graphics.image_atlas.atlas);
+            graphics.image_renderer.image_update(&mut gui.tileset_list.bg, &mut renderer, &mut graphics.image_atlas);
             gui.tileset_list.texts.iter_mut().for_each(|text| {
                 graphics.text_renderer
                             .text_update(text, &mut graphics.text_atlas, &mut renderer)
                             .unwrap();
             });
             gui.tileset_list.selection_buttons.iter_mut().for_each(|button| {
-                graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas.atlas);
+                graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas);
             });
             gui.tileset_list.scrollbar.images.iter_mut().for_each(|image| {
-                graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas.atlas);
+                graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas);
             });
         }
 

@@ -8,10 +8,12 @@ mod tabtext;
 mod tool;
 mod tileset_list;
 mod scrollbar;
+mod dialog;
 
 use tabtext::*;
 use tool::*;
 use tileset_list::*;
+use dialog::*;
 
 pub const LABEL_FPS: usize = 0;
 pub const LABEL_TILESET: usize = 1;

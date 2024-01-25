@@ -80,8 +80,9 @@ impl MapView {
     }
 
     // This function create an effect when we are hovering on the linked map
-    pub fn hover_linked_selection(&mut self, pos: Vec2) {
-        for selection in &mut self.link_map_selection {
+    pub fn hover_linked_selection(&mut self, pos: Vec2) -> Option<usize> {
+        let mut result = None;
+        for (index, selection) in self.link_map_selection.iter_mut().enumerate() {
             let is_within_pos =
                 pos.x >= selection.pos.x
                     && pos.x <= selection.pos.x + selection.hw.x
@@ -93,6 +94,7 @@ impl MapView {
                     selection.color = Color::rgba(0, 0, 0, 0);
                     selection.changed = true;
                 }
+                result = Some(index);
             } else {
                 if selection.color != Color::rgba(0, 0, 0, 130) {
                     selection.color = Color::rgba(0, 0, 0, 130);
@@ -100,6 +102,7 @@ impl MapView {
                 }
             }
         }
+        result
     }
 
     pub fn set_tile_group(&mut self, set_pos: Vec2, layer: u32, tileset: &Map, start_pos: Vec2, selection_size: Vec2) {
@@ -150,6 +153,16 @@ impl MapView {
         self.preview_size = size;
         self.adjust_selection_preview();
         self.selection_preview.changed = true;
+    }
+
+    pub fn clear_map(&mut self, index: usize) {
+        (0..8).for_each(|layer| {
+            (0..32).for_each(|x| {
+                (0..32).for_each(|y| {
+                    self.maps[index].set_tile((x, y, layer), TileData::default());
+                });
+            });
+        });
     }
 
     // This function ensure that the selection preview does not show outside the map boundary
