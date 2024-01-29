@@ -253,7 +253,7 @@ impl MapView {
                 return;
             }
             let data = get_change.unwrap();
-            for (_key, changedata) in data.changes.iter() {
+            for (_key, changedata) in data.undo.iter() {
                 let pos = Vec3::new(changedata.pos.x, changedata.pos.y, changedata.pos.z);
                 let texture_id = changedata.texture_id as u32;
                 

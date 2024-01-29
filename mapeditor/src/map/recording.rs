@@ -10,7 +10,7 @@ pub struct ChangeData {
 }
 
 pub struct Record {
-    pub changes: IndexMap<String, ChangeData>,
+    pub undo: IndexMap<String, ChangeData>,
 }
 pub struct Records {
     in_record: bool,
@@ -36,7 +36,7 @@ impl Records {
         let index = self.data.len();
         self.last_index = Some(index);
         self.data.push(Record {
-            changes: IndexMap::new()
+            undo: IndexMap::new()
         });
     }
 
@@ -50,8 +50,8 @@ impl Records {
 
         if let Some(index) = self.last_index {
             let key_name = format!("{}_{}_{}", pos.x, pos.y, pos.z);
-            if !self.data[index].changes.contains_key(&key_name) {
-                self.data[index].changes.insert(key_name, ChangeData { pos, texture_id });
+            if !self.data[index].undo.contains_key(&key_name) {
+                self.data[index].undo.insert(key_name, ChangeData { pos, texture_id });
             }
         }
     }
