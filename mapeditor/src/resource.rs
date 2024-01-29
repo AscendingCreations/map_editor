@@ -24,6 +24,7 @@ pub struct TextureAllocation {
     pub scrollbar: TextureData,
     pub tab_option: TextureData,
     pub white: TextureData,
+    pub dialog_button: TextureData,
     pub tilesheet: Vec<TilesheetData>,
 }
 
@@ -77,6 +78,11 @@ impl TextureAllocation {
             .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
+        let dialog_button = TextureData {name: "dialog_button.png".to_string(), 
+            allocation: Texture::from_file("images/gui/dialog_button.png")?
+            .upload(&mut atlases[0], renderer)
+            .ok_or_else(|| OtherError::new("failed to upload image"))?};
+
         let mut tilesheet = Vec::with_capacity(MAX_TILESHEET as usize);
         for index in 0..MAX_TILESHEET {
             let res = TilesheetData {name: format!("tile_{}.png", index), 
@@ -97,6 +103,7 @@ impl TextureAllocation {
             scrollbar,
             tab_option,
             white,
+            dialog_button,
             tilesheet,
         })
     }

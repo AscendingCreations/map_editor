@@ -10,10 +10,14 @@ where
     pub image_atlas: AtlasSet,
     pub map_atlas: AtlasSet,
     pub text_atlas: TextAtlas,
+    pub ui_atlas: AtlasSet,
     /// Rendering Buffers and other shared data.
     pub text_renderer: TextRenderer,
     pub image_renderer: ImageRenderer,
+    pub dialog_renderer: ImageRenderer,
+    pub dialog_text_renderer: TextRenderer,
     pub map_renderer: MapRenderer,
+    pub ui_renderer: RectRenderer,
 }
 
 impl<Controls> Pass for Graphics<Controls>
@@ -74,5 +78,11 @@ where
         pass.render_upper_maps(renderer, &self.map_renderer, &self.map_atlas);
 
         pass.render_text(renderer, &self.text_renderer, &self.text_atlas);
+
+        pass.render_image(renderer, &self.dialog_renderer, &self.image_atlas);
+
+        pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas);
+
+        pass.render_text(renderer, &self.dialog_text_renderer, &self.text_atlas);
     }
 }

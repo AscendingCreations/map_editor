@@ -3,20 +3,23 @@ use cosmic_text::{Attrs, Metrics};
 use winit::dpi::PhysicalSize;
 use crate::resource::*;
 use crate::collection::ZOOM_LEVEL;
+use indexmap::IndexMap;
 
 mod tabtext;
 mod tool;
 mod tileset_list;
 mod scrollbar;
-mod dialog;
+pub mod dialog;
 
 use tabtext::*;
 use tool::*;
 use tileset_list::*;
-use dialog::*;
+pub use dialog::*;
 
 pub const LABEL_FPS: usize = 0;
 pub const LABEL_TILESET: usize = 1;
+pub const LABEL_MAPNAME: usize = 2;
+pub const LABEL_TILEPOS: usize = 3;
 
 pub const TOOL_LOAD: usize = 0;
 pub const TOOL_SAVE: usize = 1;
@@ -44,6 +47,7 @@ pub struct Interface {
     pub tab_labels: Vec<TabText>,
     pub current_tab_data: u32,
     pub tileset_list: TilesetList,
+    pub dialog: Option<Dialog>,
 }
 
 impl Interface {
@@ -58,19 +62,24 @@ impl Interface {
         bg_layout.color = Color::rgba(255, 255, 255, 255);
 
         // Preparing labels
-        let mut labels = Vec::with_capacity(1);
-
-        // Prepare all labels that will be drawn in the interface
-        let text = create_label(renderer, size, scale,
-                            Vec3::new(221.0, 16.0, 1.0), 
-                            Vec2::new(100.0, 16.0),
-                            Color::rgba(120, 120, 120, 255)); // FPS
-        labels.push(text);
-        let text = create_label(renderer, size, scale,
-                            Vec3::new(37.0, 770.0, 1.0), 
-                            Vec2::new(152.0, 20.0),
-                            Color::rgba(0, 0, 0, 255)); // Tileset Label
-        labels.push(text);
+        let mut labels = vec![
+            create_label(renderer, size, scale,
+                Vec3::new(870.0, 767.0, 10.0), 
+                Vec2::new(100.0, 16.0),
+                Color::rgba(180, 180, 180, 255)), // FPS
+            create_label(renderer, size, scale,
+                Vec3::new(37.0, 770.0, 2.0), 
+                Vec2::new(152.0, 20.0),
+                Color::rgba(0, 0, 0, 255)), // Tileset Label
+            create_label(renderer, size, scale,
+                Vec3::new(221.0, 13.0, 10.0), 
+                Vec2::new(600.0, 20.0),
+                Color::rgba(180, 180, 180, 255)), // Map Name
+            create_label(renderer, size, scale,
+                Vec3::new(810.0, 13.0, 10.0), 
+                Vec2::new(130.0, 20.0),
+                Color::rgba(180, 180, 180, 255)) // Tile Pos
+        ];
 
         // Prepare Tools
         let mut buttons = Vec::with_capacity(10);
@@ -148,6 +157,8 @@ impl Interface {
         tab_labels[0].set_select(true); // Set Ground as selected
 
         labels[LABEL_TILESET].set_text(renderer, &resource.tilesheet[0].name, Attrs::new());
+        labels[LABEL_MAPNAME].set_text(renderer, "Map [ X: 0 Y: 0 Group: 0 ]", Attrs::new());
+        labels[LABEL_TILEPOS].set_text(renderer, "Tile [ X: 32 Y: 32 ]", Attrs::new());
 
         // Completed! We can now pass the struct
         Self {
@@ -160,6 +171,7 @@ impl Interface {
             tab_labels,
             current_tab_data: 0,
             tileset_list,
+            dialog: None,
         }
     }
 
@@ -296,6 +308,17 @@ impl Interface {
             TAB_PROPERTIES => { 0 as u32 },
             _ => { 0 as u32 },
         }
+    }
+
+    pub fn open_dialog(&mut self, resource: &TextureAllocation, renderer: &mut GpuRenderer, size: &PhysicalSize<f32>, scale: f64, dialogtype: DialogType, data: Option<IndexMap<String, bool>>) {
+        if self.dialog.is_some() {
+            return;
+        }
+        self.dialog = Some(Dialog::new(resource, renderer, size, scale, dialogtype, data));
+    }
+
+    pub fn close_dialog(&mut self) {
+        self.dialog = None;
     }
 }
 

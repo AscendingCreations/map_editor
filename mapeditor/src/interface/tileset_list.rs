@@ -85,7 +85,7 @@ impl TilesetList {
 
             // Create the text
             let mut text = create_label(renderer, size, scale,
-                        Vec3::new(bg.pos.x + 7.0, bg.pos.y + 369.0 - (21.0 * index as f32), 0.0),
+                        Vec3::new(bg.pos.x + 7.0, bg.pos.y + 369.0 - (21.0 * index as f32), 1.9),
                         Vec2::new(100.0, 20.0),
                         Color::rgba(180, 180, 180, 255));
             text.set_text(renderer, &resource.tilesheet[index].name, Attrs::new());
@@ -95,7 +95,7 @@ impl TilesetList {
         // Scrollbar
         let scrollbar_value = MAX_TILESHEET.max(MAX_VISIBLE_LIST) - MAX_VISIBLE_LIST;
         let scrollbar = Scrollbar::new(resource, renderer,
-            Vec2::new(bg.pos.x + 188.0, bg.pos.y + 389.0), scrollbar_value as usize);
+            Vec3::new(bg.pos.x + 188.0, bg.pos.y + 389.0, 3.0), scrollbar_value as usize, 377, 20);
 
         // We set the default selected tileset
         selection_buttons[0].set_select(true);

@@ -23,7 +23,7 @@ pub struct EditorData {
     // Map ID
     pub x: i32,
     pub y: i32,
-    pub group: i32,
+    pub group: u64,
 
     // Loaded Maps
     pub current_index: String,
@@ -49,6 +49,26 @@ impl EditorData {
             maps,
             did_map_change,
         })
+    }
+
+    pub fn init_map(&mut self, x: i32, y: i32, group: u64) {
+        // Set position
+        self.x = x;
+        self.y = y;
+        self.group = group;
+        let key_data = format!("{}_{}_{}", x, y, group);
+        
+        if self.maps.contains_key(&key_data) {
+            // Since the map is already loaded, we just switch the center map
+            self.current_index = key_data;
+        } else {
+            // Change current center map
+            self.current_index = key_data;
+            // Since the map is not loaded, we must load the file and add it on the loaded maps
+            let map = load_file(self.x, self.y, self.group).unwrap();
+            self.maps.insert(self.current_index.clone(), map);
+            self.did_map_change.insert(self.current_index.clone(), false);
+        }
     }
 
     pub fn move_map(&mut self, direction: Direction) -> Option<String> {
@@ -111,10 +131,21 @@ impl EditorData {
                 });
             });
             if should_save {
-                mapdata.save_file(self.x, self.y, self.group).unwrap();
+                mapdata.save_file().unwrap();
                 // Since we have saved the map, let's mark the map as 'no change'
                 if let Some(did_change) = self.did_map_change.get_mut(&self.current_index) {
                     *did_change = false;
+                }
+            }
+        }
+    }
+
+    pub fn save_all_maps(&mut self) {
+        for (key, value) in self.did_map_change.iter() {
+            // Save only with changes
+            if *value {
+                if let Some(mapdata) = self.maps.get_mut(key) {
+                    mapdata.save_file().unwrap();
                 }
             }
         }
@@ -229,10 +260,24 @@ impl EditorData {
         });
     }
 
-    pub fn set_map_change(&mut self) {
+    pub fn set_map_change(&mut self) -> bool {
         if let Some(did_change) = self.did_map_change.get_mut(&self.current_index) {
             *did_change = true;
+            return true;
         }
+        false
+    }
+
+    pub fn got_changes(&mut self) -> bool {
+        self.did_map_change.values().any(|&value| value)
+    }
+
+    pub fn did_change(&mut self, x: i32, y: i32, group: u64) -> bool {
+        let key_data = format!("{}_{}_{}", x, y, group);
+        if !self.did_map_change.contains_key(&key_data) {
+            return false;
+        }
+        *self.did_map_change.get(&key_data).unwrap()
     }
 }
 
@@ -243,18 +288,24 @@ pub struct Tile {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MapData {
+    pub x: i32,
+    pub y: i32,
+    pub group: u64,
     pub tile: Vec<Tile>,
 }
 
 impl MapData {
-    pub fn default() -> Self {
+    pub fn default(x: i32, y: i32, group: u64) -> Self {
         Self {
+            x,
+            y,
+            group,
             tile: vec![Tile { id: vec![0; 1024] }; 8],
         }
     }
 
-    pub fn save_file(&self, x: i32, y: i32, group: i32) -> Result<(), AscendingError> {
-        let name = format!("./data/maps/{}_{}_{}.json", x, y, group);
+    pub fn save_file(&self) -> Result<(), AscendingError> {
+        let name = format!("./data/maps/{}_{}_{}.json", self.x, self.y, self.group);
 
         match OpenOptions::new().truncate(true).write(true).open(&name) {
             Ok(file) => {
@@ -270,7 +321,7 @@ impl MapData {
     }
 }
 
-pub fn create_file(x: i32, y: i32, group: i32, data: &MapData) -> Result<(), AscendingError> {
+pub fn create_file(x: i32, y: i32, group: u64, data: &MapData) -> Result<(), AscendingError> {
     let name = format!("./data/maps/{}_{}_{}.json", x, y, group);
 
     match OpenOptions::new().write(true).create_new(true).open(&name) {
@@ -286,10 +337,10 @@ pub fn create_file(x: i32, y: i32, group: i32, data: &MapData) -> Result<(), Asc
     }
 }
 
-pub fn load_file(x: i32, y: i32, group: i32) -> Result<MapData, AscendingError> {
+pub fn load_file(x: i32, y: i32, group: u64) -> Result<MapData, AscendingError> {
     if !is_map_exist(x, y, group) {
-        let data = MapData::default();
-        match create_file(x, y, group, &MapData::default()) {
+        let data = MapData::default(x,y,group);
+        match create_file(x, y, group, &MapData::default(x,y,group)) {
             Ok(()) => return Ok(data),
             Err(e) => return Err(e),
         }
@@ -304,7 +355,7 @@ pub fn load_file(x: i32, y: i32, group: i32) -> Result<MapData, AscendingError> 
                 Ok(data) => Ok(data),
                 Err(e) => {
                     println!("Error {:?}", e);
-                    Ok(MapData::default())
+                    Ok(MapData::default(x,y,group))
                 }
             }
         }
@@ -312,7 +363,7 @@ pub fn load_file(x: i32, y: i32, group: i32) -> Result<MapData, AscendingError> 
     }
 }
 
-pub fn is_map_exist(x: i32, y: i32, group: i32) -> bool {
+pub fn is_map_exist(x: i32, y: i32, group: u64) -> bool {
     let name = format!("./data/maps/{}_{}_{}.json", x, y, group);
     Path::new(&name).exists()
 }

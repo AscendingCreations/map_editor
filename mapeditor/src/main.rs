@@ -221,6 +221,9 @@ async fn main() -> Result<(), AscendingError> {
     let text_renderer = TextRenderer::new(&renderer).unwrap();
     let image_renderer = ImageRenderer::new(&renderer).unwrap();
     let map_renderer = MapRenderer::new(&mut renderer, 81).unwrap();
+    let dialog_renderer = ImageRenderer::new(&renderer).unwrap();
+    let dialog_text_renderer = TextRenderer::new(&renderer).unwrap();
+    let ui_renderer = RectRenderer::new(&mut renderer).unwrap();
 
     // Allow the window to be seen. hiding it then making visible speeds up
     // load times.
@@ -233,13 +236,16 @@ async fn main() -> Result<(), AscendingError> {
         map_renderer,
         map_atlas: atlases.remove(0),
         image_renderer,
+        dialog_renderer,
+        dialog_text_renderer,
         text_atlas,
         text_renderer,
+        ui_renderer,
+        ui_atlas: atlases.remove(0),
     };
 
     // Create the mouse/keyboard bindings for our stuff.
     let bindings = Bindings::<Action, Axis>::new();
-    //bindings.insert_action(Action::Quit, vec![Key::Character('q').into()]);
 
     // set bindings and create our own input handler.
     let mut input_handler = InputHandler::new(bindings);
@@ -260,7 +266,22 @@ async fn main() -> Result<(), AscendingError> {
                 window_id,
                 ..
             } if window_id == renderer.window().id() => {
-                if let WindowEvent::CloseRequested = *event { elwt.exit(); }
+                match event {
+                    WindowEvent::CloseRequested => {
+                        if editor_data.got_changes() {
+                            // We found changes on our map, we need to confirm if we would like to proceed to exit the editor
+                            gui.open_dialog(&resource, &mut renderer, &size, scale, DialogType::TypeMapSave, Some(editor_data.did_map_change.clone()));
+                        } else {
+                            gui.open_dialog(&resource, &mut renderer, &size, scale, DialogType::TypeExitConfirm, None);
+                        }
+                    }
+                    WindowEvent::KeyboardInput { event, .. } => {
+                        handle_key_input(&mut renderer,
+                                    event,
+                                    &mut gui);
+                    }
+                    _ => {}
+                }
             }
             Event::AboutToWait => { renderer.window().request_redraw(); }
             _ => {}
@@ -300,7 +321,7 @@ async fn main() -> Result<(), AscendingError> {
         }
 
         // check if out close action was hit for esc
-        if input_handler.is_action_down(&Action::Quit) { elwt.exit(); }
+        //if input_handler.is_action_down(&Action::Quit) { elwt.exit(); }
 
         let mouse_pos_result = input_handler.mouse_position();
         let mouse_pos =if mouse_pos_result.is_none() { (0.0, 0.0) } else { mouse_pos_result.unwrap() };
@@ -314,6 +335,7 @@ async fn main() -> Result<(), AscendingError> {
                 handle_input(&mut renderer, &resource, InputType::MouseLeftDown, 
                     &Vec2::new(mouse_pos.0, mouse_pos.1),
                     &size,
+                    scale,
                     &mut gameinput,
                     &mut gui, 
                     &mut tileset,
@@ -326,6 +348,7 @@ async fn main() -> Result<(), AscendingError> {
                     handle_input(&mut renderer, &resource, InputType::MouseLeftDownMove, 
                         &Vec2::new(mouse_pos.0, mouse_pos.1),
                         &size,
+                        scale,
                         &mut gameinput,
                         &mut gui,
                         &mut tileset,
@@ -340,13 +363,27 @@ async fn main() -> Result<(), AscendingError> {
                 handle_input(&mut renderer, &resource, InputType::MouseMove, 
                     &Vec2::new(mouse_pos.0, mouse_pos.1),
                     &size,
+                    scale,
                     &mut gameinput,
                     &mut gui,
                     &mut tileset,
                     &mut mapview,
                     &mut editor_data);
             }
+            mapview.record.stop_record();
             gui.reset_button_click();
+            if let Some(dialog) = &mut gui.dialog {
+                dialog.release_click();
+                dialog.scrollbar.release_scrollbar();
+            }
+            if gameinput.dialog_button_press {
+                handle_dialog_input(&mut renderer,
+                                    &mut gameinput, 
+                                    &mut gui,
+                                    elwt,
+                                    &mut editor_data,
+                                    &mut mapview);
+            }
             gui.tileset_list.scrollbar.release_scrollbar();
             did_key_press[action_index(Action::Select)] = false;
         }
@@ -403,6 +440,39 @@ async fn main() -> Result<(), AscendingError> {
             });
         }
 
+        // Dialog
+        if let Some(dialog) = &mut gui.dialog {
+            graphics.dialog_renderer.image_update(&mut dialog.bg, &mut renderer, &mut graphics.image_atlas);
+            graphics.ui_renderer.rect_update(&mut dialog.window, &mut renderer, &mut graphics.ui_atlas);
+            graphics.dialog_text_renderer
+                .text_update(&mut dialog.message, &mut graphics.text_atlas, &mut renderer)
+                .unwrap();
+            dialog.buttons.iter_mut().for_each(|dialogbutton| {
+                graphics.dialog_renderer.image_update(&mut dialogbutton.image, &mut renderer, &mut graphics.image_atlas);
+                graphics.dialog_text_renderer
+                    .text_update(&mut dialogbutton.text, &mut graphics.text_atlas, &mut renderer)
+                    .unwrap();
+            });
+            dialog.content_image.iter_mut().for_each(|rect| {
+                graphics.ui_renderer.rect_update(rect, &mut renderer, &mut graphics.ui_atlas);
+            });
+            dialog.content_text.iter_mut().for_each(|text| {
+                graphics.dialog_text_renderer
+                            .text_update(text, &mut graphics.text_atlas, &mut renderer)
+                            .unwrap();
+            });
+            dialog.editor_text.iter_mut().for_each(|text| {
+                graphics.dialog_text_renderer
+                            .text_update(text, &mut graphics.text_atlas, &mut renderer)
+                            .unwrap();
+            });
+            if dialog.dialog_type == DialogType::TypeMapSave {
+                dialog.scrollbar.images.iter_mut().for_each(|image| {
+                    graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas);
+                });
+            }
+        }
+
         // Labels
         gui.labels.iter_mut().for_each(|text| {
             graphics.text_renderer
@@ -417,6 +487,9 @@ async fn main() -> Result<(), AscendingError> {
         graphics.image_renderer.finalize(&mut renderer);
         graphics.map_renderer.finalize(&mut renderer);
         graphics.text_renderer.finalize(&mut renderer);
+        graphics.dialog_renderer.finalize(&mut renderer);
+        graphics.dialog_text_renderer.finalize(&mut renderer);
+        graphics.ui_renderer.finalize(&mut renderer);
 
         // Start encoding commands. this stores all the rendering calls for execution when
         // finish is called.

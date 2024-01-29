@@ -22,7 +22,7 @@ impl TabText {
         button.color = Color::rgba(255, 255, 255, 255);
 
         let mut text = create_label(renderer, size, scale,
-            Vec3::new(pos.x + 24.0, pos.y - 1.0, 1.0),
+            Vec3::new(pos.x + 24.0, pos.y - 1.0, 1.9),
             Vec2::new(165.0, 20.0),
             Color::rgba(120, 120, 120, 255));
         text.set_text(renderer, msg, Attrs::new());

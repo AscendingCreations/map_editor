@@ -3,9 +3,6 @@ use guillotiere::euclid::num::Floor;
 
 use crate::resource::*;
 
-const MAX_SCROLL_SIZE: usize = 377;
-const MIN_SIZE: usize = 20;
-
 enum TextureState {
     Normal,
     Hover,
@@ -23,18 +20,20 @@ pub struct Scrollbar {
     start_pos: usize,
     end_pos: usize,
     length: usize,
+    max_scroll_size: usize,
+    min_size: usize,
 }
 
 impl Scrollbar {
-    pub fn new(resource: &TextureAllocation, renderer: &mut GpuRenderer, pos: Vec2, max_value: usize) -> Self {
+    pub fn new(resource: &TextureAllocation, renderer: &mut GpuRenderer, pos: Vec3, max_value: usize, max_scroll_size: usize, min_size: usize) -> Self {
         let mut images = Vec::with_capacity(3);
 
-        let mut scrollbar_size = (MAX_SCROLL_SIZE / (max_value + 1)).floor();
-        if scrollbar_size < MIN_SIZE { scrollbar_size = MIN_SIZE; }
+        let mut scrollbar_size = (max_scroll_size / (max_value + 1)).floor();
+        if scrollbar_size < min_size { scrollbar_size = min_size; }
 
         // Top Corner of Scrollbar
         let mut image = Image::new(Some(resource.scrollbar.allocation), renderer, 1);
-        image.pos = Vec3::new(pos.x, pos.y, 3.0);
+        image.pos = Vec3::new(pos.x, pos.y, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 0.0, 10.0, 4.0);
         image.color = Color::rgba(255, 255, 255, 255);
@@ -42,7 +41,7 @@ impl Scrollbar {
 
         // Center of Scrollbar
         let mut image = Image::new(Some(resource.scrollbar.allocation), renderer, 1);
-        image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32, 3.0);
+        image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32, pos.z);
         image.hw = Vec2::new(10.0, scrollbar_size as f32);
         image.uv = Vec4::new(0.0, 5.0, 10.0, 6.0);
         image.color = Color::rgba(255, 255, 255, 255);
@@ -50,14 +49,14 @@ impl Scrollbar {
 
         // Bottom Corner of Scrollbar
         let mut image = Image::new(Some(resource.scrollbar.allocation), renderer, 1);
-        image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32 - 4.0, 2.0);
+        image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32 - 4.0, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 12.0, 10.0, 4.0);
         image.color = Color::rgba(255, 255, 255, 255);
         images.push(image);
 
         let start_pos = pos.y as usize;
-        let end_pos = pos.y as usize - (MAX_SCROLL_SIZE - scrollbar_size);
+        let end_pos = pos.y as usize - (max_scroll_size - scrollbar_size);
         let length = start_pos - end_pos;
 
         Self {
@@ -71,6 +70,8 @@ impl Scrollbar {
             start_pos,
             end_pos,
             length,
+            max_scroll_size,
+            min_size,
         }
     }
 

@@ -1,6 +1,11 @@
 use graphics::*;
 use crate::resource::*;
 use crate::collection::TEXTURE_SIZE;
+use indexmap::IndexMap;
+
+mod recording;
+
+use recording::*;
 
 pub struct MapView {
     pub maps: Vec<Map>,
@@ -8,6 +13,9 @@ pub struct MapView {
     pub selection_preview: Image,
     preview_pos: Vec2,
     preview_size: Vec2,
+
+    // Recording
+    pub record: Records,
 }
 
 impl MapView {
@@ -76,6 +84,7 @@ impl MapView {
             selection_preview,
             preview_pos: Vec2::new(0.0, 0.0),
             preview_size: Vec2::new(1.0, 1.0),
+            record: Records::new(),
         }
     }
 
@@ -115,6 +124,10 @@ impl MapView {
                 if tiledata.texture_id > 0 {
                     // Make sure we wont set map outside the map size limit
                     if (set_pos.x as u32 + x) < 32 && (set_pos.y as u32 + y) < 32 {
+                        // Record change for undo purpose
+                        let last_texture = self.maps[0].get_tile((set_pos.x as u32 + x, set_pos.y as u32 + y, layer)).texture_id;
+                        self.record.push_change(Vec3::new(set_pos.x + x as f32, set_pos.y + y as f32, layer as f32), last_texture as i32);
+
                         self.maps[0].set_tile((set_pos.x as u32 + x, set_pos.y as u32 + y, layer), tiledata);
                     }
                 }
@@ -129,9 +142,65 @@ impl MapView {
                 if (set_pos.x as u32 + x) < 32 && (set_pos.y as u32 + y) < 32 {
                     let texture_id = self.maps[0].get_tile((set_pos.x as u32 + x, set_pos.y as u32 + y, layer)).texture_id;
                     if texture_id > 0 {
+                        // Record change for undo purpose
+                        let last_texture = self.maps[0].get_tile((set_pos.x as u32 + x, set_pos.y as u32 + y, layer)).texture_id;
+                        self.record.push_change(Vec3::new(set_pos.x + x as f32, set_pos.y + y as f32, layer as f32), last_texture as i32);
+                        
                         self.maps[0].set_tile(
                             (set_pos.x as u32 + x, set_pos.y as u32 + y, layer), 
                             TileData::default());
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn set_tile_fill(&mut self, set_pos: Vec2, layer: u32, tileset: &Map, tileset_pos: Vec2) {
+        // Get the tile data from the tileset
+        let tiledata = tileset.get_tile((tileset_pos.x as u32, tileset_pos.y as u32, 0));
+        if tiledata.texture_id == 0 {
+            return;
+        }
+
+        // We will only change the tiles that have a similar texture id, and this will be use to check
+        let comparedata = self.maps[0].get_tile((set_pos.x as u32, set_pos.y as u32, layer)).texture_id;
+        if comparedata == tiledata.texture_id {
+            return;
+        }
+
+        // This will hold the location that need to be paint
+        let mut paint_to_map: Vec<Vec2> = Vec::with_capacity(0);
+
+        // Place our starting location on to be paint collection
+        paint_to_map.push(set_pos);
+
+        // Loop through our collections of position that requires to be paint
+        while let Some(pos) = paint_to_map.pop() {
+            // Record change for undo purpose
+            let last_texture = self.maps[0].get_tile((pos.x as u32, pos.y as u32, layer)).texture_id;
+            self.record.push_change(Vec3::new(pos.x, pos.y, layer as f32), last_texture as i32);
+
+            // Paint the map
+            self.maps[0].set_tile((pos.x as u32, pos.y as u32, layer), tiledata);
+            
+            // Check direction
+            for dir in 0..4 {
+                // Get the surrounding map position
+                let mut adjust_pos = Vec2::new(0.0, 0.0);
+                match dir {
+                    1 => { adjust_pos.y = 1.0; }, // Up
+                    2 => { adjust_pos.x = -1.0; }, // Left
+                    3 => { adjust_pos.x = 1.0; }, // Right
+                    _ => { adjust_pos.y = -1.0; }, // Down
+                }
+                let checkpos = pos + adjust_pos;
+
+                if checkpos.x >= 0.0 && checkpos.x < 32.0 && checkpos.y >= 0.0 && checkpos.y < 32.0 {
+                    // Check the map texture id and we make sure that we only change
+                    // if they have the same texture id as the starting tile
+                    let check_data = self.maps[0].get_tile((checkpos.x as u32, checkpos.y as u32, layer)).texture_id;
+                    if check_data == comparedata {
+                        paint_to_map.push(checkpos);
                     }
                 }
             }
@@ -175,5 +244,26 @@ impl MapView {
         let new_size = Vec2::new(clamped_x - self.preview_pos.x, clamped_y - self.preview_pos.y);
 
         self.selection_preview.hw = Vec2::new(new_size.x * TEXTURE_SIZE as f32, new_size.y * TEXTURE_SIZE as f32);
+    }
+
+    pub fn apply_undo(&mut self) {
+        if self.record.data.len() > 0 {
+            let get_change = self.record.get_last_change();
+            if get_change.is_none() {
+                return;
+            }
+            let data = get_change.unwrap();
+            for (_key, changedata) in data.changes.iter() {
+                let pos = Vec3::new(changedata.pos.x, changedata.pos.y, changedata.pos.z);
+                let texture_id = changedata.texture_id as u32;
+                
+                self.maps[0].set_tile((pos.x as u32, pos.y as u32, pos.z as u32),
+                                TileData {
+                                    texture_id: texture_id,
+                                    texture_layer: 0,
+                                    color: Color::rgba(255, 255, 255, 255),
+                                });
+            }
+        }
     }
 }
