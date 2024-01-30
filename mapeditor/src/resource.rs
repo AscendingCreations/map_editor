@@ -129,14 +129,18 @@ impl TextureAllocation {
             };
 
             // Store the tile location
-            println!("Tileset # {:?}", index);
             for tile in &res.tile.tiles {
+<<<<<<< Updated upstream
                 if tile.tex_id > 0 {
                     println!(
                         "Tile ID: {:?} X: {:?} Y: {:?}",
                         tile.tex_id, tile.x, tile.y
                     );
                     tile_location.insert(tile.tex_id, (tile.x, tile.y, index));
+=======
+                if tile.id > 0 {
+                    tile_location.insert(tile.id, (tile.x, tile.y, index));
+>>>>>>> Stashed changes
                 }
             }
 
