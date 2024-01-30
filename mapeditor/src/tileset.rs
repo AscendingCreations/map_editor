@@ -1,6 +1,6 @@
-use graphics::*;
-use crate::resource::*;
 use crate::collection::TEXTURE_SIZE;
+use crate::resource::*;
+use graphics::*;
 
 pub const MAX_TILE_X: u32 = 10;
 pub const MAX_TILE_Y: u32 = 20;
@@ -14,7 +14,10 @@ pub struct Tileset {
 }
 
 impl Tileset {
-    pub fn new(resource: &TextureAllocation, renderer: &mut GpuRenderer) -> Self {
+    pub fn new(
+        resource: &TextureAllocation,
+        renderer: &mut GpuRenderer,
+    ) -> Self {
         let mut tilesheet = Tileset {
             map: Map::new(renderer, TEXTURE_SIZE),
             selected_tile: 0,
@@ -24,14 +27,19 @@ impl Tileset {
         };
 
         // Loop throughout all texture and place them on the map based on their texture location
-        for tiledata in &resource.tilesheet[tilesheet.selected_tile].tile.tiles {
-            let (id, x, y) = (tiledata.id, tiledata.x / TEXTURE_SIZE, (MAX_TILE_Y - (tiledata.y / TEXTURE_SIZE) - 1));
+        for tiledata in &resource.tilesheet[tilesheet.selected_tile].tile.tiles
+        {
+            let (id, x, y) = (
+                tiledata.tex_id,
+                tiledata.x / TEXTURE_SIZE,
+                (MAX_TILE_Y - (tiledata.y / TEXTURE_SIZE) - 1),
+            );
             // We make sure that we only set those that are not empty tile
             if id > 0 {
                 tilesheet.map.set_tile(
                     (x, y, 0),
                     TileData {
-                        id: id as usize,
+                        id,
                         color: Color::rgba(255, 255, 255, 255),
                     },
                 );
@@ -43,8 +51,13 @@ impl Tileset {
 
         // Setup tile selection image settings
         // We set the selected tile at the very first tile
-        tilesheet.selection.pos = Vec3::new(tilesheet.map.pos.x, tilesheet.map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32, 9.0);
-        tilesheet.selection.hw = Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+        tilesheet.selection.pos = Vec3::new(
+            tilesheet.map.pos.x,
+            tilesheet.map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32,
+            9.0,
+        );
+        tilesheet.selection.hw =
+            Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
         tilesheet.selection.uv = Vec4::new(2.0, 2.0, 17.0, 17.0);
         tilesheet.selection.color = Color::rgba(80, 0, 0, 130);
 
@@ -67,39 +80,47 @@ impl Tileset {
         self.select_size = (end_pos - start_pos) + 1.0;
 
         // Adjust selection position and size
-        self.selection.pos = Vec3::new(self.map.pos.x + (start_pos.x * TEXTURE_SIZE as f32), 
-                                        self.map.pos.y + (start_pos.y * TEXTURE_SIZE as f32), 4.0);
+        self.selection.pos = Vec3::new(
+            self.map.pos.x + (start_pos.x * TEXTURE_SIZE as f32),
+            self.map.pos.y + (start_pos.y * TEXTURE_SIZE as f32),
+            4.0,
+        );
         self.selection.hw = self.select_size * TEXTURE_SIZE as f32;
         self.selection.changed = true;
 
         self.select_size
     }
 
-    pub fn change_tileset(&mut self, resource: &TextureAllocation, tileset_index: usize) {
+    pub fn change_tileset(
+        &mut self,
+        resource: &TextureAllocation,
+        tileset_index: usize,
+    ) {
         if self.selected_tile == tileset_index {
             return;
         }
         self.selected_tile = tileset_index;
-        
+
         // Clear Tileset
         (0..MAX_TILE_X).for_each(|x| {
             (0..MAX_TILE_Y).for_each(|y| {
-                self.map.set_tile(
-                    (x, y, 0),
-                    TileData::default(),
-                );
+                self.map.set_tile((x, y, 0), TileData::default());
             });
         });
 
         // Loop throughout all texture and place them on the map based on their texture location
         for tiledata in &resource.tilesheet[tileset_index].tile.tiles {
-            let (id, x, y) = (tiledata.id, tiledata.x / TEXTURE_SIZE, (MAX_TILE_Y - (tiledata.y / TEXTURE_SIZE) - 1));
+            let (id, x, y) = (
+                tiledata.tex_id,
+                tiledata.x / TEXTURE_SIZE,
+                (MAX_TILE_Y - (tiledata.y / TEXTURE_SIZE) - 1),
+            );
             // We make sure that we only set those that are not empty tile
             if id > 0 {
                 self.map.set_tile(
                     (x, y, 0),
                     TileData {
-                        id: id as usize,
+                        id,
                         color: Color::rgba(255, 255, 255, 255),
                     },
                 );
