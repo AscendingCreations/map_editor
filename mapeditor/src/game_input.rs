@@ -115,11 +115,13 @@ fn get_map_pos(screen_pos: Vec2, mapview: &MapView) -> Vec2 {
 }
 
 fn interact_with_map(renderer: &mut GpuRenderer,
+                    resource: &TextureAllocation,
                     tile_pos: Vec2, 
                     gui: &mut Interface,
                     tileset: &mut Tileset,
                     mapview: &mut MapView,
-                    editor_data: &mut EditorData)
+                    editor_data: &mut EditorData,
+                    gameinput: &mut GameInput)
 {
     match gui.current_setting_tab {
         TAB_LAYER => {
@@ -132,6 +134,7 @@ fn interact_with_map(renderer: &mut GpuRenderer,
                     if editor_data.set_map_change() {
                         update_map_name(renderer, gui, editor_data);
                     };
+                    mapview.record.clear_redo();
                 },
                 TOOL_ERASE => {
                     mapview.delete_tile_group(tile_pos, gui.get_tab_option_data(),  
@@ -139,6 +142,7 @@ fn interact_with_map(renderer: &mut GpuRenderer,
                     if editor_data.set_map_change() {
                         update_map_name(renderer, gui, editor_data);
                     };
+                    mapview.record.clear_redo();
                 },
                 TOOL_FILL => {
                     mapview.set_tile_fill(tile_pos, gui.get_tab_option_data(), 
@@ -147,7 +151,27 @@ fn interact_with_map(renderer: &mut GpuRenderer,
                     if editor_data.set_map_change() {
                         update_map_name(renderer, gui, editor_data);
                     };
-                }
+                    mapview.record.clear_redo();
+                },
+                TOOL_EYEDROP => {
+                    let tiledata = mapview.get_tile_data(tile_pos);
+                    let id = tiledata.id.clone() as u32;
+                    if let Some((x, y, tile)) = resource.tile_location.get(&id) {
+                        // Change the loaded tileset
+                        gui.tileset_list.selected_tileset = tile.clone() as usize;
+                        gui.labels[LABEL_TILESET].set_text(renderer, 
+                                &resource.tilesheet[gui.tileset_list.selected_tileset].name, Attrs::new());
+                        tileset.change_tileset(resource, gui.tileset_list.selected_tileset);
+                        gui.tileset_list.update_list(resource, renderer);
+
+                        // Set the selected tile position
+                        let (posx, posy) = (x / TEXTURE_SIZE, (MAX_TILE_Y - (y / TEXTURE_SIZE) - 1));
+                        gameinput.tileset_start = Vec2::new(posx as f32, posy as f32);
+                        gameinput.tileset_end = Vec2::new(posx as f32, posy as f32);
+                        gameinput.return_size = tileset.set_selection(gameinput.tileset_start, gameinput.tileset_end);
+                        mapview.change_selection_preview_size(gameinput.return_size);
+                    }
+                },
                 _ => {},
             }
         }
@@ -288,14 +312,13 @@ pub fn handle_input(renderer: &mut GpuRenderer,
                     gameinput.tileset_end = tile_map_pos.clone();
                     gameinput.return_size = tileset.set_selection(gameinput.tileset_start, gameinput.tileset_end);
                     mapview.change_selection_preview_size(gameinput.return_size);
-
                     gameinput.presstype = PressType::PressTileset;
                 }
 
                 // Check if mouse position is pointing to our map view
                 if in_map(screen_pos, mapview) {
-                    mapview.record.set_record();
-                    interact_with_map(renderer,get_map_pos(screen_pos, mapview), gui, tileset, mapview, editor_data);
+                    mapview.record.set_undo_record();
+                    interact_with_map(renderer, resource,get_map_pos(screen_pos, mapview), gui, tileset, mapview, editor_data, gameinput);
                     gameinput.presstype = PressType::PressMap;
                 }
 
@@ -328,8 +351,10 @@ pub fn handle_input(renderer: &mut GpuRenderer,
                         TOOL_UNDO => {
                             mapview.apply_undo();
                         },
-                        TOOL_EYEDROP => { println!("To Do") },
-                        TOOL_DRAW | TOOL_ERASE | TOOL_FILL => {
+                        TOOL_REDO => {
+                            mapview.apply_redo();
+                        },
+                        TOOL_DRAW | TOOL_ERASE | TOOL_FILL | TOOL_EYEDROP => {
                             gui.set_tool(button_index);
                         },
                         TAB_ATTRIBUTE | TAB_LAYER | TAB_PROPERTIES => {
@@ -382,7 +407,7 @@ pub fn handle_input(renderer: &mut GpuRenderer,
 
                     gui.labels[LABEL_TILEPOS].set_text(renderer, &format!("Tile [ X: {} Y: {} ]", tile_map_pos.x, tile_map_pos.y), Attrs::new());
                     
-                    interact_with_map(renderer,tile_map_pos, gui, tileset, mapview, editor_data);
+                    interact_with_map(renderer, resource,tile_map_pos, gui, tileset, mapview, editor_data, gameinput);
 
                     mapview.hover_selection_preview(tile_map_pos);
                 }

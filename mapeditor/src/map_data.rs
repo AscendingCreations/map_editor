@@ -88,8 +88,8 @@ impl EditorData {
         if let Some(change) = self.did_map_change.get(&self.current_index) {
             // We will remove the map on the collection when no change has been done
             if !change {
-                self.did_map_change.remove(&self.current_index);
-                self.maps.remove(&self.current_index);
+                self.did_map_change.shift_remove(&self.current_index);
+                self.maps.shift_remove(&self.current_index);
             } else {
                 temp_key = Some(self.current_index.clone());
             }
@@ -126,7 +126,7 @@ impl EditorData {
                 (0..32).for_each(|x| {
                     (0..32).for_each(|y| {
                         let tile_num = get_tile_pos(x, y);
-                        mapdata.tile[layer].id[tile_num] = map.get_tile((x as u32, y as u32, layer as u32)).texture_id;
+                        mapdata.tile[layer].id[tile_num] = map.get_tile((x as u32, y as u32, layer as u32)).id as u32;
                     });
                 });
             });
@@ -160,12 +160,11 @@ impl EditorData {
                 (0..32).for_each(|x| {
                     (0..32).for_each(|y| {
                         let tile_num = get_tile_pos(x, y);
-                        let texture_id = mapdata.tile[layer].id[tile_num] as u32;
-                        if texture_id > 0 {
+                        let id = mapdata.tile[layer].id[tile_num] as usize;
+                        if id > 0 {
                             map.maps[0].set_tile((x as u32, y as u32, layer as u32), 
                                         TileData { 
-                                            texture_id,
-                                            texture_layer: 0,
+                                            id,
                                             color: Color::rgba(255, 255, 255, 255),
                                         });
                         }
@@ -242,13 +241,12 @@ impl EditorData {
                         (0..size.x as i32).for_each(|x| {
                             (0..size.y as i32).for_each(|y| {
                                 let tile_num = get_tile_pos(start.x as i32 + x, start.y as i32 + y);
-                                let texture_id = mapdata.tile[layer].id[tile_num] as u32;
+                                let id = mapdata.tile[layer].id[tile_num] as usize;
                                 
-                                if texture_id > 0 {
+                                if id > 0 {
                                     map.maps[maplink + 1].set_tile((x as u32, y as u32, layer as u32), 
                                                 TileData { 
-                                                    texture_id,
-                                                    texture_layer: 0,
+                                                    id,
                                                     color: Color::rgba(255, 255, 255, 255),
                                                 });
                                 }

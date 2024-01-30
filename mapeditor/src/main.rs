@@ -14,7 +14,7 @@ use std::{
     io::{prelude::*, Read, Write},
     iter, panic,
     sync::Arc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use wgpu::{Backends, Dx12Compiler, InstanceDescriptor, InstanceFlags};
 use winit::{
@@ -221,8 +221,6 @@ async fn main() -> Result<(), AscendingError> {
     let text_renderer = TextRenderer::new(&renderer).unwrap();
     let image_renderer = ImageRenderer::new(&renderer).unwrap();
     let map_renderer = MapRenderer::new(&mut renderer, 81).unwrap();
-    let dialog_renderer = ImageRenderer::new(&renderer).unwrap();
-    let dialog_text_renderer = TextRenderer::new(&renderer).unwrap();
     let ui_renderer = RectRenderer::new(&mut renderer).unwrap();
 
     // Allow the window to be seen. hiding it then making visible speeds up
@@ -236,8 +234,6 @@ async fn main() -> Result<(), AscendingError> {
         map_renderer,
         map_atlas: atlases.remove(0),
         image_renderer,
-        dialog_renderer,
-        dialog_text_renderer,
         text_atlas,
         text_renderer,
         ui_renderer,
@@ -396,27 +392,27 @@ async fn main() -> Result<(), AscendingError> {
         graphics.system.update_screen(&renderer, [new_size.width, new_size.height]);
 
         // This adds the Image data to the Buffer for rendering.
-        graphics.map_renderer.map_update(&mut tileset.map, &mut renderer); // Tileset
-        graphics.image_renderer.image_update(&mut tileset.selection, &mut renderer, &mut graphics.image_atlas); // Tileset Selection
+        graphics.map_renderer.map_update(&mut tileset.map, &mut renderer, &mut graphics.map_atlas, [0, 0]); // Tileset
+        graphics.image_renderer.image_update(&mut tileset.selection, &mut renderer, &mut graphics.image_atlas, 0); // Tileset Selection
         // Map View
         mapview.maps.iter_mut().for_each(|map| {
-            graphics.map_renderer.map_update(map, &mut renderer);
+            graphics.map_renderer.map_update(map, &mut renderer, &mut graphics.map_atlas, [0, 0]);
         });
         mapview.link_map_selection.iter_mut().for_each(|image| {
-            graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas);
+            graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas, 0);
         });
-        graphics.image_renderer.image_update(&mut mapview.selection_preview, &mut renderer, &mut graphics.image_atlas);
+        graphics.image_renderer.image_update(&mut mapview.selection_preview, &mut renderer, &mut graphics.image_atlas, 0);
         // GUI
-        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut renderer, &mut graphics.image_atlas);
+        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut renderer, &mut graphics.image_atlas, 0);
         gui.buttons.iter_mut().for_each(|button| {
-            graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas);
+            graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas, 0);
         });
         match gui.current_setting_tab {
             TAB_LAYER => {
                 for i in 0..MapLayers::Count as usize {
-                    graphics.image_renderer.image_update(&mut gui.tab_labels[i].button, &mut renderer, &mut graphics.image_atlas);
+                    graphics.image_renderer.image_update(&mut gui.tab_labels[i].button, &mut renderer, &mut graphics.image_atlas, 0);
                     graphics.text_renderer
-                        .text_update(&mut gui.tab_labels[i].text, &mut graphics.text_atlas, &mut renderer)
+                        .text_update(&mut gui.tab_labels[i].text, &mut graphics.text_atlas, &mut renderer, 0)
                         .unwrap();
                 }
             },
@@ -426,59 +422,58 @@ async fn main() -> Result<(), AscendingError> {
         }
         // Tileset List
         if gui.tileset_list.visible {
-            graphics.image_renderer.image_update(&mut gui.tileset_list.bg, &mut renderer, &mut graphics.image_atlas);
+            graphics.image_renderer.image_update(&mut gui.tileset_list.bg, &mut renderer, &mut graphics.image_atlas, 0);
             gui.tileset_list.texts.iter_mut().for_each(|text| {
                 graphics.text_renderer
-                            .text_update(text, &mut graphics.text_atlas, &mut renderer)
+                            .text_update(text, &mut graphics.text_atlas, &mut renderer, 0)
                             .unwrap();
             });
             gui.tileset_list.selection_buttons.iter_mut().for_each(|button| {
-                graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas);
+                graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas, 0);
             });
             gui.tileset_list.scrollbar.images.iter_mut().for_each(|image| {
-                graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas);
+                graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas, 0);
             });
         }
+        // Labels
+        gui.labels.iter_mut().for_each(|text| {
+            graphics.text_renderer
+                .text_update(text, &mut graphics.text_atlas, &mut renderer, 0)
+                .unwrap();
+        });
 
         // Dialog
         if let Some(dialog) = &mut gui.dialog {
-            graphics.dialog_renderer.image_update(&mut dialog.bg, &mut renderer, &mut graphics.image_atlas);
-            graphics.ui_renderer.rect_update(&mut dialog.window, &mut renderer, &mut graphics.ui_atlas);
-            graphics.dialog_text_renderer
-                .text_update(&mut dialog.message, &mut graphics.text_atlas, &mut renderer)
+            graphics.image_renderer.image_update(&mut dialog.bg, &mut renderer, &mut graphics.image_atlas, 1);
+            graphics.ui_renderer.rect_update(&mut dialog.window, &mut renderer, &mut graphics.ui_atlas, 1);
+            graphics.text_renderer
+                .text_update(&mut dialog.message, &mut graphics.text_atlas, &mut renderer, 2)
                 .unwrap();
             dialog.buttons.iter_mut().for_each(|dialogbutton| {
-                graphics.dialog_renderer.image_update(&mut dialogbutton.image, &mut renderer, &mut graphics.image_atlas);
-                graphics.dialog_text_renderer
-                    .text_update(&mut dialogbutton.text, &mut graphics.text_atlas, &mut renderer)
+                graphics.image_renderer.image_update(&mut dialogbutton.image, &mut renderer, &mut graphics.image_atlas, 1);
+                graphics.text_renderer
+                    .text_update(&mut dialogbutton.text, &mut graphics.text_atlas, &mut renderer, 2)
                     .unwrap();
             });
             dialog.content_image.iter_mut().for_each(|rect| {
-                graphics.ui_renderer.rect_update(rect, &mut renderer, &mut graphics.ui_atlas);
+                graphics.ui_renderer.rect_update(rect, &mut renderer, &mut graphics.ui_atlas, 1);
             });
             dialog.content_text.iter_mut().for_each(|text| {
-                graphics.dialog_text_renderer
-                            .text_update(text, &mut graphics.text_atlas, &mut renderer)
+                graphics.text_renderer
+                            .text_update(text, &mut graphics.text_atlas, &mut renderer, 2)
                             .unwrap();
             });
             dialog.editor_text.iter_mut().for_each(|text| {
-                graphics.dialog_text_renderer
-                            .text_update(text, &mut graphics.text_atlas, &mut renderer)
+                graphics.text_renderer
+                            .text_update(text, &mut graphics.text_atlas, &mut renderer, 2)
                             .unwrap();
             });
             if dialog.dialog_type == DialogType::TypeMapSave {
                 dialog.scrollbar.images.iter_mut().for_each(|image| {
-                    graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas);
+                    graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas, 1);
                 });
             }
         }
-
-        // Labels
-        gui.labels.iter_mut().for_each(|text| {
-            graphics.text_renderer
-                .text_update(text, &mut graphics.text_atlas, &mut renderer)
-                .unwrap();
-        });
 
         // this cycles all the Image's in the Image buffer by first putting them in rendering order
         // and then uploading them to the GPU if they have moved or changed in any way. clears the
@@ -487,8 +482,6 @@ async fn main() -> Result<(), AscendingError> {
         graphics.image_renderer.finalize(&mut renderer);
         graphics.map_renderer.finalize(&mut renderer);
         graphics.text_renderer.finalize(&mut renderer);
-        graphics.dialog_renderer.finalize(&mut renderer);
-        graphics.dialog_text_renderer.finalize(&mut renderer);
         graphics.ui_renderer.finalize(&mut renderer);
 
         // Start encoding commands. this stores all the rendering calls for execution when

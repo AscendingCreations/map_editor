@@ -31,8 +31,7 @@ impl Tileset {
                 tilesheet.map.set_tile(
                     (x, y, 0),
                     TileData {
-                        texture_id: id,
-                        texture_layer: 0,
+                        id: id as usize,
                         color: Color::rgba(255, 255, 255, 255),
                     },
                 );
@@ -100,8 +99,7 @@ impl Tileset {
                 self.map.set_tile(
                     (x, y, 0),
                     TileData {
-                        texture_id: id,
-                        texture_layer: 0,
+                        id: id as usize,
                         color: Color::rgba(255, 255, 255, 255),
                     },
                 );

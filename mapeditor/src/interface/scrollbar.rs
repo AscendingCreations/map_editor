@@ -22,6 +22,7 @@ pub struct Scrollbar {
     length: usize,
     max_scroll_size: usize,
     min_size: usize,
+    pub visible: bool,
 }
 
 impl Scrollbar {
@@ -72,6 +73,7 @@ impl Scrollbar {
             length,
             max_scroll_size,
             min_size,
+            visible: false,
         }
     }
 
@@ -83,6 +85,9 @@ impl Scrollbar {
     }
 
     pub fn hold_scrollbar(&mut self, pos_y: f32) {
+        if !self.visible {
+            return;
+        }
         if !self.in_hold {
             self.in_hold = true;
             self.hold_pos = (self.images[0].pos.y + 4.0) - pos_y;
@@ -102,6 +107,9 @@ impl Scrollbar {
     }
 
     pub fn set_hover(&mut self, mouse_pos: Vec2) {
+        if !self.visible {
+            return;
+        }
         self.in_hover = mouse_pos.x >= self.images[0].pos.x &&
                 mouse_pos.x <= self.images[0].pos.x + self.images[0].hw.x &&
                 mouse_pos.y >= self.images[2].pos.y &&
@@ -117,7 +125,7 @@ impl Scrollbar {
     }
 
     pub fn move_scrollbar(&mut self, pos_y: f32) {
-        if !self.in_hold {
+        if !self.in_hold || !self.visible {
             return;
         }
 
@@ -133,6 +141,14 @@ impl Scrollbar {
 
         // Calculate the current value
         self.cur_value = (((self.start_pos as f32 - y) / self.length as f32) * self.max_value as f32).floor() as usize;
+    }
+
+    pub fn show(&mut self) {
+        self.visible = true;
+    }
+
+    pub fn hide(&mut self) {
+        self.visible = false;
     }
 }
 

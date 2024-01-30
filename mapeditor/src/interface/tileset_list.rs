@@ -189,6 +189,7 @@ impl TilesetList {
         }
         self.visible = true;
         self.bg.changed = true;
+        self.scrollbar.show();
         self.selection_buttons.iter_mut().for_each(|button| {
             button.image.changed = true;
         });
@@ -202,5 +203,6 @@ impl TilesetList {
 
     pub fn hide(&mut self) {
         self.visible = false;
+        self.scrollbar.hide();
     }
 }

@@ -14,8 +14,6 @@ where
     /// Rendering Buffers and other shared data.
     pub text_renderer: TextRenderer,
     pub image_renderer: ImageRenderer,
-    pub dialog_renderer: ImageRenderer,
-    pub dialog_text_renderer: TextRenderer,
     pub map_renderer: MapRenderer,
     pub ui_renderer: RectRenderer,
 }
@@ -71,18 +69,20 @@ where
             wgpu::IndexFormat::Uint32,
         );
 
-        pass.render_lower_maps(renderer, &self.map_renderer, &self.map_atlas);
+        pass.render_map(renderer, &self.map_renderer, &self.map_atlas, 0);
 
-        pass.render_image(renderer, &self.image_renderer, &self.image_atlas);
+        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 0);
 
-        pass.render_upper_maps(renderer, &self.map_renderer, &self.map_atlas);
+        pass.render_map(renderer, &self.map_renderer, &self.map_atlas, 1);
 
-        pass.render_text(renderer, &self.text_renderer, &self.text_atlas);
+        pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 0);
 
-        pass.render_image(renderer, &self.dialog_renderer, &self.image_atlas);
+        pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 0);
 
-        pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas);
+        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 1);
 
-        pass.render_text(renderer, &self.dialog_text_renderer, &self.text_atlas);
+        pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 1);
+
+        pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 2);
     }
 }

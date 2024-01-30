@@ -1,4 +1,5 @@
 use graphics::*;
+use indexmap::IndexMap;
 use crate::collection::TEXTURE_SIZE;
 
 // Modify this based on how many tilesheet image
@@ -26,6 +27,8 @@ pub struct TextureAllocation {
     pub white: TextureData,
     pub dialog_button: TextureData,
     pub tilesheet: Vec<TilesheetData>,
+    // This will be used for eyedropper tool
+    pub tile_location: IndexMap<u32, (u32, u32, u32)>,
 }
 
 impl TextureAllocation {
@@ -83,12 +86,23 @@ impl TextureAllocation {
             .upload(&mut atlases[0], renderer)
             .ok_or_else(|| OtherError::new("failed to upload image"))?};
 
+        let mut tile_location = IndexMap::new();
         let mut tilesheet = Vec::with_capacity(MAX_TILESHEET as usize);
         for index in 0..MAX_TILESHEET {
             let res = TilesheetData {name: format!("tile_{}.png", index), 
                 tile: Texture::from_file(format!("images/tiles/tile_{}.png", index))?
                 .new_tilesheet(&mut atlases[1], &renderer, TEXTURE_SIZE)
                 .ok_or_else(|| OtherError::new("failed to upload tiles"))?};
+
+            // Store the tile location
+            println!("Tileset # {:?}", index);
+            for tile in &res.tile.tiles {
+                if tile.id > 0 {
+                    println!("Tile ID: {:?} X: {:?} Y: {:?}", tile.id, tile.x, tile.y);
+                    tile_location.insert(tile.id, (tile.x, tile.y, index));
+                }
+            }
+
             tilesheet.push(res);
         }
 
@@ -105,6 +119,7 @@ impl TextureAllocation {
             white,
             dialog_button,
             tilesheet,
+            tile_location,
         })
     }
 }

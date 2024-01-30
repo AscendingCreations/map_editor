@@ -2,7 +2,7 @@
 name = "ascending_graphics"
 version = "0.1.0"
 authors = ["S.J.R. van Schaik", "Andrew Wheeler <genusistimelord@gmail.com>"]
-license = "MIT OR Apache-2.0"
+license = "MIT/Apache-2.0"
 edition = "2021"
 resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -41,6 +41,7 @@ glam.workspace = true
 lyon.workspace = true
 slab.workspace = true
 indexmap.workspace = true
+kdtree.workspace = true
 #iced_winit = {git = "https://github.com/iced-rs/iced.git", optional = true}
 #iced_wgpu =  {git = "https://github.com/iced-rs/iced.git", optional = true}
 #iced_widget =  {git = "https://github.com/iced-rs/iced.git", optional = true}

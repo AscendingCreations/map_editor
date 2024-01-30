@@ -9,12 +9,14 @@ pub struct ChangeData {
     pub texture_id: i32,
 }
 
+#[derive(Debug)]
 pub struct Record {
-    pub undo: IndexMap<String, ChangeData>,
+    pub changes: IndexMap<String, ChangeData>,
 }
 pub struct Records {
     in_record: bool,
-    pub data: Vec<Record>,
+    pub undo: Vec<Record>,
+    pub redo: Vec<Record>,
     last_index: Option<usize>,
 }
 
@@ -22,37 +24,81 @@ impl Records {
     pub fn new() -> Self {
         Self {
             in_record: false,
-            data: Vec::new(),
+            undo: Vec::new(),
+            redo: Vec::new(),
             last_index: None,
         }
     }
 
-    pub fn set_record(&mut self) {
+    pub fn set_undo_record(&mut self) {
         if self.in_record {
             return;
         }
 
         self.in_record = true;
-        let index = self.data.len();
+        let index = self.undo.len();
         self.last_index = Some(index);
-        self.data.push(Record {
-            undo: IndexMap::new()
+        self.undo.push(Record {
+            changes: IndexMap::new(),
         });
     }
 
-    pub fn push_change(&mut self, pos: Vec3, texture_id: i32) {
+    pub fn push_undo(&mut self, pos: Vec3, texture_id: i32) {
         if !self.in_record {
             return;
         }
-        if self.data.len() >= MAX_CHANGE {
+        if self.undo.len() >= MAX_CHANGE {
             return;
         }
 
         if let Some(index) = self.last_index {
             let key_name = format!("{}_{}_{}", pos.x, pos.y, pos.z);
-            if !self.data[index].undo.contains_key(&key_name) {
-                self.data[index].undo.insert(key_name, ChangeData { pos, texture_id });
+            if !self.undo[index].changes.contains_key(&key_name) {
+                self.undo[index].changes.insert(key_name, ChangeData { pos, texture_id });
             }
+        }
+    }
+
+    pub fn get_last_undo(&mut self) -> Option<Record> {
+        self.undo.pop()
+    }
+
+    pub fn set_redo_record(&mut self) {
+        if self.in_record {
+            return;
+        }
+
+        self.in_record = true;
+        let index = self.redo.len();
+        self.last_index = Some(index);
+        self.redo.push(Record {
+            changes: IndexMap::new(),
+        });
+    }
+
+    pub fn push_redo(&mut self, pos: Vec3, texture_id: i32) {
+        if !self.in_record {
+            return;
+        }
+        if self.redo.len() >= MAX_CHANGE {
+            return;
+        }
+
+        if let Some(index) = self.last_index {
+            let key_name = format!("{}_{}_{}", pos.x, pos.y, pos.z);
+            if !self.redo[index].changes.contains_key(&key_name) {
+                self.redo[index].changes.insert(key_name, ChangeData { pos, texture_id });
+            }
+        }
+    }
+
+    pub fn get_last_redo(&mut self) -> Option<Record> {
+        self.redo.pop()
+    }
+
+    pub fn clear_redo(&mut self) {
+        if self.redo.len() > 0 {
+            self.redo = Vec::new();
         }
     }
 
@@ -62,9 +108,5 @@ impl Records {
         }
         self.in_record = false;
         self.last_index = None;
-    }
-
-    pub fn get_last_change(&mut self) -> Option<Record> {
-        self.data.pop()
     }
 }

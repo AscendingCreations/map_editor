@@ -365,9 +365,10 @@ impl Dialog {
         if dialog_type == DialogType::TypeMapSave && editor_data.len() > 4 {
             scrollbar_amount = editor_data.len() - 4;
         }
-        let scrollbar = Scrollbar::new(resource, renderer, 
+        let mut scrollbar = Scrollbar::new(resource, renderer, 
                             Vec3::new(scrollbar_x + 353.0, window_pos.y + 145.0, 0.5), 
                             scrollbar_amount, 75, 5);
+        scrollbar.show();
 
         Self {
             is_open: false,

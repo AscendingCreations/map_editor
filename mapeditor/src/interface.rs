@@ -24,16 +24,17 @@ pub const LABEL_TILEPOS: usize = 3;
 pub const TOOL_LOAD: usize = 0;
 pub const TOOL_SAVE: usize = 1;
 pub const TOOL_UNDO: usize = 2;
-pub const TOOL_DRAW: usize = 3;
-pub const TOOL_ERASE: usize = 4;
-pub const TOOL_FILL: usize = 5;
-pub const TOOL_EYEDROP: usize = 6;
-pub const TAB_LAYER: usize = 7;
-pub const TAB_ATTRIBUTE: usize = 8;
-pub const TAB_PROPERTIES: usize = 9;
-pub const BUTTON_TILESET: usize = 10;
+pub const TOOL_REDO: usize = 3;
+pub const TOOL_DRAW: usize = 4;
+pub const TOOL_ERASE: usize = 5;
+pub const TOOL_FILL: usize = 6;
+pub const TOOL_EYEDROP: usize = 7;
+pub const TAB_LAYER: usize = 8;
+pub const TAB_ATTRIBUTE: usize = 9;
+pub const TAB_PROPERTIES: usize = 10;
+pub const BUTTON_TILESET: usize = 11;
 
-const MAX_TOOL: usize = 7;
+const MAX_TOOL: usize = 8;
 const MAX_SETTING_TAB: usize = 3;
 const MAX_EXTRA_BUTTON: usize = 1;
 
@@ -97,7 +98,7 @@ impl Interface {
             tool.image.pos = Vec3::new(last_pos_x, 760.0, 10.0);
             match index {
                 TOOL_SAVE => { last_pos_x += 39.0; }
-                TOOL_UNDO => { last_pos_x += 39.0; }
+                TOOL_REDO => { last_pos_x += 39.0; }
                 _ => { last_pos_x += 32.0; }
             }
             tool.image.hw = Vec2::new(30.0, 30.0);
