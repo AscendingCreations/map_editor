@@ -274,6 +274,17 @@ async fn main() -> Result<(), AscendingError> {
             } if window_id == draw_setting.renderer.window().id() => {
                 match event {
                     WindowEvent::CloseRequested => {
+                        // Close preference window
+                        if gui.preference.is_open {
+                            if gui.preference.keywindow.is_open {
+                                gui.preference.keywindow.close_key();
+                            }
+                            gui.preference.config_data = match load_config() {
+                                Ok(data) => data,
+                                Err(_) => KeybindData::default(),
+                            };
+                            gui.preference.close();
+                        }
                         if editor_data.got_changes() {
                             // We found changes on our map, we need to confirm if we would like to proceed to exit the editor
                             gui.open_dialog(&mut draw_setting, DialogType::TypeMapSave, Some(editor_data.did_map_change.clone()));
@@ -282,10 +293,18 @@ async fn main() -> Result<(), AscendingError> {
                         }
                     }
                     WindowEvent::KeyboardInput { event, .. } => {
-                        handle_key_input(&mut draw_setting.renderer,
+                        if !handle_key_input(&mut draw_setting.renderer,
                                     event,
                                     &mut gui,
-                                    &mut mapview);
+                                    &mut mapview) {
+                            // Make sure that we only trigger the shortcut keys when we are not on a textbox
+                            handle_shortcut(event,
+                                    &mut draw_setting,
+                                    &mut gameinput,
+                                    &mut editor_data,
+                                    &mut mapview,
+                                    &mut gui);
+                        };
                     }
                     _ => {}
                 }
@@ -379,6 +398,9 @@ async fn main() -> Result<(), AscendingError> {
             if let Some(dialog) = &mut gui.dialog {
                 dialog.release_click();
                 dialog.scrollbar.release_scrollbar();
+            }
+            if gui.preference.keywindow.is_open {
+                gui.preference.keywindow.release_click();
             }
             if gameinput.dialog_button_press {
                 handle_dialog_input(&mut draw_setting,
@@ -579,8 +601,45 @@ async fn main() -> Result<(), AscendingError> {
                 graphics.image_renderer.image_update(image, &mut draw_setting.renderer, &mut graphics.image_atlas, 2);
             });
             match gui.preference.selected_menu {
-                PREF_TAB_GENERAL => {},
-                PREF_TAB_KEYBIND => {},
+                PREF_TAB_GENERAL => {
+                    gui.preference.setting_data.iter_mut().for_each(|setting| {
+                        match setting {
+                            SettingData::Checkbox(checkbox) => {
+                                checkbox.window.iter_mut().for_each(|rect| {
+                                    graphics.ui_renderer.rect_update(rect, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+                                });
+                                graphics.text_renderer
+                                    .text_update(&mut checkbox.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                                    .unwrap();
+                            }
+                            _ => {},
+                        }
+                    })
+                },
+                PREF_TAB_KEYBIND => {
+                    gui.preference.key_list.iter_mut().for_each(|keylist| {
+                        graphics.text_renderer
+                            .text_update(&mut keylist.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                            .unwrap();
+                        graphics.text_renderer
+                            .text_update(&mut keylist.key_string, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                            .unwrap();
+                        graphics.ui_renderer.rect_update(&mut keylist.key_button, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+                    });
+
+                    if gui.preference.keywindow.is_open {
+                        graphics.ui_renderer.rect_update(&mut gui.preference.keywindow.window, &mut draw_setting.renderer, &mut graphics.ui_atlas, 4);
+                        graphics.text_renderer
+                            .text_update(&mut gui.preference.keywindow.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 5)
+                            .unwrap();
+                        gui.preference.keywindow.buttons.iter_mut().for_each(|button| {
+                            graphics.image_renderer.image_update(&mut button.image, &mut draw_setting.renderer, &mut graphics.image_atlas, 4);
+                            graphics.text_renderer
+                                .text_update(&mut button.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 5)
+                                .unwrap();
+                        });
+                    }
+                },
                 _ => {},
             }
         }

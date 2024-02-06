@@ -87,5 +87,9 @@ where
         pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 2);
         pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 2);
         pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 3);
+
+        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 4);
+        pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 4);
+        pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 5);
     }
 }

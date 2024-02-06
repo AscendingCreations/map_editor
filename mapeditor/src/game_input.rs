@@ -18,6 +18,7 @@ use crate::{
     tileset::*,
     Content,
     DrawSetting,
+    interface::preference::keybind::*,
 };
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,6 +54,8 @@ pub struct GameInput {
     selected_link_map: Option<usize>,
     pub dialog_button_press: bool,
     selected_dialog_type: DialogButtonType,
+    // Shortcut
+    pub hold_key_modifier: [bool; 3],
 }
 
 impl GameInput {
@@ -66,6 +69,7 @@ impl GameInput {
             selected_link_map: None,
             dialog_button_press: false,
             selected_dialog_type: DialogButtonType::ButtonNone,
+            hold_key_modifier: [false; 3],
         }
     }
 }
@@ -247,22 +251,55 @@ pub fn handle_input(
     if gui.preference.is_open {
         match inputtype {
             InputType::MouseLeftDown => {
-                if gui.preference.scrollbar.in_scrollbar(screen_pos) {
-                    gui.preference.scrollbar.hold_scrollbar(screen_pos.y);
-                }
-
-                if !gui.preference.scrollbar.in_hold {
-                    let click_button = gui.preference.click_buttons(screen_pos);
-                    if let Some(index) = click_button {
-                        match index {
-                            0 => gui.preference.close(), // Cancel
-                            1 => { println!("Reset") }, // Reset
-                            _ => { println!("Save") }, // Save
-                        }
+                if !gui.preference.keywindow.is_open {
+                    if gui.preference.scrollbar.in_scrollbar(screen_pos) {
+                        gui.preference.scrollbar.hold_scrollbar(screen_pos.y);
                     }
 
-                    if gui.preference.select_menu_button(screen_pos) {
-                        open_preference_tab(&mut gui.preference);
+                    if !gui.preference.scrollbar.in_hold {
+                        let click_button = gui.preference.click_buttons(screen_pos);
+                        if let Some(index) = click_button {
+                            match index {
+                                0 => {
+                                    gui.preference.config_data = match load_config() {
+                                        Ok(data) => data,
+                                        Err(_) => KeybindData::default(),
+                                    };
+                                    gui.preference.close()
+                                }, // Cancel
+                                1 => {
+                                    gui.preference.reset_preference(draw_setting);
+                                }, // Reset
+                                _ => {
+                                    gui.preference.config_data.save_config().unwrap();
+                                    gui.preference.close()
+                                }, // Save
+                            }
+                        }
+
+                        if gui.preference.select_menu_button(screen_pos) {
+                            open_preference_tab(&mut gui.preference, draw_setting);
+                        }
+
+                        if let Some(key_index) = gui.preference.select_keylist(screen_pos) {
+                            gui.preference.keywindow.open_key(draw_setting, key_index);
+                        }
+                    }
+                } else {
+                    let click_button = gui.preference.keywindow.click_buttons(screen_pos);
+                    if let Some(index) = click_button {
+                        match index {
+                            0 => gui.preference.keywindow.close_key(), // Cancel
+                            _ => {
+                                if let Some(keycode) = &gui.preference.keywindow.key_code {
+                                    let index = gui.preference.keywindow.key_index;
+                                    gui.preference.config_data.key_code[index] = keycode.clone();
+                                    gui.preference.config_data.key_code_modifier[index] = gui.preference.keywindow.key_modifier.clone();
+                                    gui.preference.update_key_list(draw_setting, index);
+                                }
+                                gui.preference.keywindow.close_key()
+                            }, // Save
+                        }
                     }
                 }
             }
@@ -276,6 +313,9 @@ pub fn handle_input(
             InputType::MouseMove => {
                 gui.preference.hover_buttons(screen_pos);
                 gui.preference.scrollbar.set_hover(screen_pos);
+                if gui.preference.keywindow.is_open {
+                    gui.preference.keywindow.hover_buttons(screen_pos);
+                }
             }
         }
         return;
@@ -345,6 +385,16 @@ pub fn handle_input(
                 if let Some(button_index) = click_button {
                     match button_index {
                         TOOL_LOAD => {
+                            if gui.preference.is_open {
+                                if gui.preference.keywindow.is_open {
+                                    gui.preference.keywindow.close_key();
+                                }
+                                gui.preference.config_data = match load_config() {
+                                    Ok(data) => data,
+                                    Err(_) => KeybindData::default(),
+                                };
+                                gui.preference.close();
+                            }
                             gui.open_dialog(
                                 draw_setting,
                                 DialogType::TypeMapLoad,
@@ -412,7 +462,10 @@ pub fn handle_input(
                                 1 => {
                                     println!("Reset All");
                                 },
-                                2 => gui.preference.open(),
+                                2 => {
+                                    gui.preference.open();
+                                    open_preference_tab(&mut gui.preference, draw_setting);
+                                },
                                 _ => {},
                             }
                         }
@@ -526,10 +579,17 @@ pub fn handle_key_input(
     event: &KeyEvent,
     gui: &mut Interface,
     mapview: &mut MapView,
-) {
-    if !event.state.is_pressed() {
-        return;
+) -> bool {
+    if gui.preference.keywindow.is_open {
+        gui.preference.keywindow.edit_key(event, renderer);
+        return true;
     }
+
+    if !event.state.is_pressed() {
+        return false;
+    }
+
+    let mut result = false;
 
     if let Some(dialog) = &mut gui.dialog {
         if dialog.dialog_type == DialogType::TypeMapLoad {
@@ -538,6 +598,7 @@ pub fn handle_key_input(
             } else {
                 dialog.editor_textbox[dialog.editing_index].enter_numeric(renderer, event, 5, false);
             }
+            result = true;
         }
     } else {
         match gui.current_setting_tab {
@@ -551,37 +612,139 @@ pub fn handle_key_input(
                             } else {
                                 gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, false);
                             }
+                            result = true;
                         }
                     },
                     MapAttribute::Sign(_) => {
                         if gui.editor_selected_box >= 0 {
                             gui.editor_textbox[gui.editor_selected_box as usize].enter_text(renderer, event, 100);
+                            result = true;
                         }
                     },
                     _ => {},
                 }
             },
             TAB_ZONE => {
-                gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, false);
-                match gui.editor_selected_box {
-                    0 => {
-                        let value = gui.editor_textbox[gui.editor_selected_box as usize].data.parse::<i64>().unwrap_or_default();
-                        mapview.map_zone_setting[gui.current_tab_data as usize]
-                                .max_npc = value as u64
-                    }, // Max NPC
-                    _ => {
-                        if gui.editor_textbox[gui.editor_selected_box as usize].data.len() > 0 {
+                if gui.editor_selected_box >= 0 {
+                    gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, false);
+                    match gui.editor_selected_box {
+                        0 => {
                             let value = gui.editor_textbox[gui.editor_selected_box as usize].data.parse::<i64>().unwrap_or_default();
                             mapview.map_zone_setting[gui.current_tab_data as usize]
-                                    .npc_id[(gui.editor_selected_box - 1) as usize] = Some(value as u64);
-                        } else {
-                            mapview.map_zone_setting[gui.current_tab_data as usize]
-                                    .npc_id[(gui.editor_selected_box - 1) as usize] = None;
-                        }
-                    }, // Npc ID
+                                    .max_npc = value as u64
+                        }, // Max NPC
+                        _ => {
+                            if gui.editor_textbox[gui.editor_selected_box as usize].data.len() > 0 {
+                                let value = gui.editor_textbox[gui.editor_selected_box as usize].data.parse::<i64>().unwrap_or_default();
+                                mapview.map_zone_setting[gui.current_tab_data as usize]
+                                        .npc_id[(gui.editor_selected_box - 1) as usize] = Some(value as u64);
+                            } else {
+                                mapview.map_zone_setting[gui.current_tab_data as usize]
+                                        .npc_id[(gui.editor_selected_box - 1) as usize] = None;
+                            }
+                        }, // Npc ID
+                    }
+                    result = true;
                 }
             },
             _ => {},
         }
+    }
+    result
+}
+
+pub fn set_key_modifier_value(game_input: &mut GameInput, modifier_index: usize, is_pressed: bool) {
+    if game_input.hold_key_modifier[modifier_index] == is_pressed {
+        return;
+    }
+    game_input.hold_key_modifier[modifier_index] = is_pressed;
+}
+
+pub fn handle_shortcut(event: &KeyEvent,
+                        draw_setting: &mut DrawSetting,
+                        gameinput: &mut GameInput,
+                        editor_data: &mut EditorData,
+                        mapview: &mut MapView,
+                        gui: &mut Interface,) {
+    let mut got_key = None;
+    let mut key_modifier = [false; 3];
+
+    if gui.dialog.is_some() || gui.preference.is_open {
+        return;
+    }
+    
+    // Read Input
+    match event.physical_key {
+        PhysicalKey::Code(KeyCode::ControlLeft) | PhysicalKey::Code(KeyCode::ControlRight) => 
+            set_key_modifier_value(gameinput, 0, event.state.is_pressed()),
+        PhysicalKey::Code(KeyCode::ShiftLeft) | PhysicalKey::Code(KeyCode::ShiftRight) => 
+            set_key_modifier_value(gameinput, 1, event.state.is_pressed()),
+        PhysicalKey::Code(KeyCode::Space) => 
+            set_key_modifier_value(gameinput, 2, event.state.is_pressed()),
+        _ => {
+            if is_valid_key_code(event) && event.state.is_pressed() {
+                got_key = Some(event.logical_key.clone());
+                key_modifier = gameinput.hold_key_modifier.clone();
+                gameinput.hold_key_modifier = [false; 3];
+            }
+        },
+    }
+
+    // Handle Input Logic
+    if let Some(keycode) = got_key {
+        if let Some(got_index) = (0..EditorKey::Count as usize).find(|&index| {
+            gui.preference.config_data.key_code[index] == keycode &&
+            gui.preference.config_data.key_code_modifier[index] == key_modifier
+        }) {
+            match got_index {
+                1 => {
+                    editor_data.save_map_data(&mapview, None);
+                    update_map_name(draw_setting, gui, editor_data);
+                }, // Save
+                2 => mapview.apply_change(&mut draw_setting.renderer, true), // Undo
+                3 => mapview.apply_change(&mut draw_setting.renderer, false), // Redo
+                4 => gui.set_tool(TOOL_DRAW), // Draw
+                5 => gui.set_tool(TOOL_ERASE), // Erase
+                6 => gui.set_tool(TOOL_FILL), // Fill
+                7 => gui.set_tool(TOOL_EYEDROP), // Eyetool
+                _ => {
+                    if gui.preference.is_open {
+                        if gui.preference.keywindow.is_open {
+                            gui.preference.keywindow.close_key();
+                        }
+                        gui.preference.config_data = match load_config() {
+                            Ok(data) => data,
+                            Err(_) => KeybindData::default(),
+                        };
+                        gui.preference.close();
+                    }
+                    gui.open_dialog(
+                        draw_setting,
+                        DialogType::TypeMapLoad,
+                        None,
+                    );
+                }, // Load
+            }
+        }
+    }
+}
+
+fn is_valid_key_code(event: &KeyEvent) -> bool {
+    match event.physical_key {
+        PhysicalKey::Code(
+            KeyCode::KeyA | KeyCode::KeyB | KeyCode::KeyC | KeyCode::KeyD
+            | KeyCode::KeyE | KeyCode::KeyF | KeyCode::KeyG | KeyCode::KeyH
+            | KeyCode::KeyI | KeyCode::KeyJ | KeyCode::KeyK | KeyCode::KeyL
+            | KeyCode::KeyM | KeyCode::KeyN | KeyCode::KeyO | KeyCode::KeyP
+            | KeyCode::KeyQ | KeyCode::KeyR | KeyCode::KeyS | KeyCode::KeyT
+            | KeyCode::KeyU | KeyCode::KeyV | KeyCode::KeyW | KeyCode::KeyX
+            | KeyCode::KeyY | KeyCode::KeyZ | KeyCode::Digit1 | KeyCode::Digit2
+            | KeyCode::Digit3 | KeyCode::Digit4 | KeyCode::Digit5 | KeyCode::Digit6
+            | KeyCode::Digit7 | KeyCode::Digit8 | KeyCode::Digit9 | KeyCode::Digit0
+            | KeyCode::Comma | KeyCode::Period | KeyCode::BracketLeft | KeyCode::BracketRight
+            | KeyCode::Backquote | KeyCode::Minus | KeyCode::Equal | KeyCode::Quote
+            | KeyCode::Backslash | KeyCode::Semicolon | KeyCode::Slash
+        ) => true,
+        _ => false,
     }
 }

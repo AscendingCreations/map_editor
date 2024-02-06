@@ -1,16 +1,31 @@
+pub mod keybind;
+
 use graphics::*;
 use cosmic_text::{Attrs, Metrics};
+use serde::{Deserialize, Serialize};
+use std::fs::OpenOptions;
+use std::io::BufReader;
+use std::path::Path;
 
-use crate::collection::ZOOM_LEVEL;
+use winit::{
+    event::*,
+    keyboard::*,
+};
+
+pub use keybind::*;
 
 use crate::{
+    collection::ZOOM_LEVEL,
     gfx_order::*,
     interface::{
         button::*,
         scrollbar::*,
+        checkbox::*,
     },
     DrawSetting,
 };
+
+use super::button;
 
 pub const PREF_TAB_GENERAL: usize = 0;
 pub const PREF_TAB_KEYBIND: usize = 1;
@@ -59,6 +74,169 @@ impl MenuButton {
     }
 }
 
+pub struct KeyList {
+    pub text: Text,
+    pub key_string: Text,
+    pub key_button: Rect,
+    is_hover: bool,
+}
+
+impl KeyList {
+    pub fn new(draw_setting: &mut DrawSetting, pos: Vec2, msg: &str, keystr: &str) -> Self {
+        let label_size = Vec2::new(100.0, 20.0);
+        let mut text = create_label(draw_setting, Vec3::new(pos.x, pos.y, ORDER_PREFERENCE_KEYLIST_TEXT), label_size,
+                    Bounds::new(pos.x, pos.y, pos.x + label_size.x, pos.y + label_size.y),
+                    Color::rgba(180, 180, 180, 255));
+        text.set_text(&mut draw_setting.renderer, msg, Attrs::new());
+
+        let key_pos = Vec3::new(pos.x + 100.0, pos.y, ORDER_PREFERENCE_KEYLIST_TEXT);
+        let key_label_size = Vec2::new(200.0, 20.0);
+        let mut key_string = create_label(draw_setting, key_pos, key_label_size, 
+                    Bounds::new(key_pos.x, key_pos.y, key_pos.x + key_label_size.x, key_pos.y + key_label_size.y),
+                    Color::rgba(180, 180, 180, 255));
+        key_string.set_text(&mut draw_setting.renderer, keystr, Attrs::new());
+
+        let mut key_button = Rect::new(&mut draw_setting.renderer, 0);
+        key_button.set_size(key_label_size)
+            .set_position(Vec3::new(key_pos.x - 3.0, key_pos.y, ORDER_PREFERENCE_KEYLIST_BUTTON))
+            .set_color(Color::rgba(50, 50, 50, 255))
+            .set_use_camera(true);
+        
+        Self {
+            text,
+            key_string,
+            key_button,
+            is_hover: false,
+        }
+    }
+
+    pub fn set_hover(&mut self, is_hover: bool) {
+        if self.is_hover == is_hover {
+            return;
+        }
+
+        self.is_hover = is_hover;
+        if self.is_hover {
+            self.key_button.set_color(Color::rgba(180, 180, 180, 255));
+            self.key_string.set_default_color(Color::rgba(40, 40, 40, 255));
+        } else {
+            self.key_button.set_color(Color::rgba(50, 50, 50, 255));
+            self.key_string.set_default_color(Color::rgba(180, 180, 180, 255));
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct KeybindData {
+    pub key_code: Vec<Key>,
+    pub key_code_modifier: Vec<[bool; 3]>,
+}
+
+impl KeybindData {
+    pub fn default() -> Self {
+        let mut key_code = Vec::new();
+        let mut key_code_modifier = Vec::new();
+
+        for key in 0..EditorKey::Count as usize {
+            let keycode = match key {
+                1 => Key::Character(SmolStr::new("s")), // Save
+                2 => Key::Character(SmolStr::new("z")), // Undo
+                3 => Key::Character(SmolStr::new("y")), // Redo
+                4 => Key::Character(SmolStr::new("d")), // Draw
+                5 => Key::Character(SmolStr::new("e")), // Erase
+                6 => Key::Character(SmolStr::new("f")), // Fill
+                7 => Key::Character(SmolStr::new("y")), // Eyetool
+                _ => Key::Character(SmolStr::new("o")), // Load
+            };
+            let keycodemodifier = match key {
+                1 => [true, false, false], // Save
+                2 => [true, false, false], // Undo
+                3 => [true, false, false], // Redo
+                4 => [false, false, false], // Draw
+                5 => [false, false, false], // Erase
+                6 => [false, false, false], // Fill
+                7 => [false, false, false], // Eyetool
+                _ => [true, false, false], // Load
+            };
+            key_code.push(keycode);
+            key_code_modifier.push(keycodemodifier);
+        }
+
+        Self {
+            key_code,
+            key_code_modifier,
+        }
+    }
+
+    pub fn save_config(&self) -> Result<(), AscendingError> {
+        let name = "./config.json".to_string();
+
+        match OpenOptions::new().truncate(true).write(true).open(&name) {
+            Ok(file) => {
+                if let Err(e) = serde_json::to_writer_pretty(&file, self) {
+                    Err(AscendingError::Other(OtherError::new(&format!("Serdes File Error Err {:?}", e))))
+                } else {
+                    Ok(())
+                }
+            }
+            Err(ref e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+            Err(e) => Err(AscendingError::Other(OtherError::new(&format!("Failed to open {}, Err {:?}", name, e)))),
+        }
+    }
+}
+
+pub fn create_config(data: &KeybindData) -> Result<(), AscendingError> {
+    let name = "./config.json".to_string();
+
+    match OpenOptions::new().write(true).create_new(true).open(&name) {
+        Ok(file) => {
+            if let Err(e) = serde_json::to_writer_pretty(&file, &data) {
+                Err(AscendingError::Other(OtherError::new(&format!("Serdes File Error Err {:?}", e))))
+            } else {
+                Ok(())
+            }
+        }
+        Err(ref e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+        Err(e) => Err(AscendingError::Other(OtherError::new(&format!("Failed to open {}, Err {:?}", name, e)))),
+    }
+}
+
+pub fn load_config() -> Result<KeybindData, AscendingError> {
+    if !is_config_exist() {
+        let data = KeybindData::default();
+        match create_config(&KeybindData::default()) {
+            Ok(()) => return Ok(data),
+            Err(e) => return Err(e),
+        }
+    }
+
+    let name = "./config.json".to_string();
+    match OpenOptions::new().read(true).open(&name) {
+        Ok(file) => {
+            let reader = BufReader::new(file);
+
+            match serde_json::from_reader(reader) {
+                Ok(data) => Ok(data),
+                Err(e) => {
+                    println!("Error {:?}", e);
+                    Ok(KeybindData::default())
+                }
+            }
+        }
+        Err(e) => Err(AscendingError::Other(OtherError::new(&format!("Failed to open {}, Err {:?}", name, e)))),
+    }
+}
+
+pub fn is_config_exist() -> bool {
+    let name = "./config.json".to_string();
+    Path::new(&name).exists()
+}
+
+pub enum SettingData {
+    None,
+    Checkbox(Checkbox)
+}
+
 pub struct Preference {
     pub is_open: bool,
     pub bg: Rect,
@@ -68,6 +246,12 @@ pub struct Preference {
     pub scrollbar: Scrollbar,
     reset_button: bool,
     pub selected_menu: usize,
+    pub config_data: KeybindData,
+    // General
+    pub setting_data: Vec<SettingData>,
+    // Keybind
+    pub key_list: Vec<KeyList>,
+    pub keywindow: KeybindWindow,
 }
 
 impl Preference {
@@ -79,7 +263,7 @@ impl Preference {
             .set_color(Color::rgba(0, 0, 0, 200))
             .set_use_camera(true);
 
-        // This will consist all rect that will shape the preference window design
+        // This will contain all rect that will shape the preference window design
         let window_size = Vec2::new(500.0, 350.0);
         let window_pos = Vec2::new(((draw_setting.size.width / ZOOM_LEVEL) * 0.5) - (window_size.x * 0.5),
                 ((draw_setting.size.height / ZOOM_LEVEL) * 0.5) - (window_size.y * 0.5)).floor();
@@ -139,6 +323,15 @@ impl Preference {
                                             window[2].position.y + window[2].size.y - 5.0, ORDER_PREFERENCE_SCROLLBAR),
                             0, window[2].size.y as usize - 10, 20);
         
+        // Keybind Window
+        let keywindow = KeybindWindow::new(draw_setting);
+
+        // Config data
+        let config_data = match load_config() {
+            Ok(data) => data,
+            Err(_) => KeybindData::default(),
+        };
+        
         Self {
             is_open: false,
             bg,
@@ -148,6 +341,10 @@ impl Preference {
             menu_button,
             scrollbar,
             selected_menu: 0,
+            setting_data: Vec::new(),
+            key_list: Vec::new(),
+            keywindow,
+            config_data,
         }
     }
 
@@ -165,6 +362,9 @@ impl Preference {
             button.image.changed = true;
             button.text.changed = true;
         });
+        self.menu_button[self.selected_menu].set_select(false);
+        self.menu_button[0].set_select(true);
+        self.selected_menu = 0;
         self.scrollbar.show();
     }
 
@@ -174,6 +374,9 @@ impl Preference {
     }
 
     pub fn hover_buttons(&mut self, mouse_pos: Vec2) {
+        if self.keywindow.is_open {
+            return;
+        }
         // We check if buttons are within the mouse position
         self.buttons.iter_mut().for_each(|button| {
             if (mouse_pos.x) >= button.image.pos.x
@@ -185,6 +388,39 @@ impl Preference {
                 button.set_hover(false);
             }
         });
+        
+        match self.selected_menu {
+            PREF_TAB_KEYBIND => {
+                self.key_list.iter_mut().for_each(|keylist| {
+                    if (mouse_pos.x) >= keylist.key_button.position.x
+                        && (mouse_pos.x) <= keylist.key_button.position.x + keylist.key_button.size.x
+                        && (mouse_pos.y) >= keylist.key_button.position.y
+                        && (mouse_pos.y) <= keylist.key_button.position.y + keylist.key_button.size.y {
+                        keylist.set_hover(true);
+                    } else {
+                        keylist.set_hover(false);
+                    }
+                });
+            },
+            PREF_TAB_GENERAL => {
+                self.setting_data.iter_mut().for_each(|setting| {
+                    match setting {
+                        SettingData::Checkbox(checkbox) => {
+                            if (mouse_pos.x) >= checkbox.window[0].position.x
+                                && (mouse_pos.x) <= checkbox.window[0].position.x + checkbox.window[0].size.x
+                                && (mouse_pos.y) >= checkbox.window[0].position.y
+                                && (mouse_pos.y) <= checkbox.window[0].position.y + checkbox.window[0].size.y {
+                                checkbox.set_hover(true);
+                            } else {
+                                checkbox.set_hover(false);
+                            }
+                        }
+                        _ => {},
+                    }
+                });
+            },
+            _ => {},
+        }
     }
 
     // This function should be called when the mouse button is not being pressed
@@ -201,6 +437,9 @@ impl Preference {
 
     // This function check which buttons are within the click position and return the button index
     pub fn click_buttons(&mut self, mouse_pos: Vec2) -> Option<usize> {
+        if self.keywindow.is_open {
+            return None;
+        }
         let mut found_button = None;
         for (index, button) in self.buttons.iter().enumerate() {
             if (mouse_pos.x) >= button.image.pos.x
@@ -218,6 +457,9 @@ impl Preference {
     }
 
     pub fn select_menu_button(&mut self, mouse_pos: Vec2) -> bool {
+        if self.keywindow.is_open {
+            return false;
+        }
         let mut found_button = None;
         for (index, button) in self.menu_button.iter().enumerate() {
             if (mouse_pos.x) >= button.image.position.x
@@ -239,21 +481,85 @@ impl Preference {
         false
     }
 
+    pub fn select_keylist(&mut self, mouse_pos: Vec2) -> Option<usize> {
+        if self.keywindow.is_open {
+            return None;
+        }
+        let mut found_button = None;
+        for (index, keylist) in self.key_list.iter().enumerate() {
+            if (mouse_pos.x) >= keylist.key_button.position.x
+                && (mouse_pos.x) <= keylist.key_button.position.x + keylist.key_button.size.x
+                && (mouse_pos.y) >= keylist.key_button.position.y
+                && (mouse_pos.y) <= keylist.key_button.position.y + keylist.key_button.size.y {
+                found_button = Some(index);
+            }
+        }
+        found_button
+    }
+
     pub fn update_scroll(&mut self, _cur_value: usize) -> bool {
+        // Scrollbar is not being used on any tabs, but it will be kept for future expansion
         false
     }
 
     pub fn update_list(&mut self) {
+        // Scrollbar is not being used on any tabs, but it will be kept for future expansion
+    }
 
+    pub fn update_key_list(&mut self, draw_setting: &mut DrawSetting, key_index: usize) {
+        let pos = Vec2::new(self.window[2].position.x + 10.0,
+                                (self.window[2].position.y + self.window[2].size.y) - 30.0);
+        let key_text = 
+                    get_key_name(self.config_data.key_code[key_index].clone(), 
+                                self.config_data.key_code_modifier[key_index].clone());
+        self.key_list[key_index] = KeyList::new(draw_setting,
+            Vec2::new(pos.x, pos.y - (key_index as f32 * 21.0)),
+            EditorKey::as_str(key_index), &key_text);
+    }
+
+    pub fn reset_preference(&mut self, draw_setting: &mut DrawSetting) {
+        // Reset data
+        self.config_data = KeybindData::default();
+        open_preference_tab(self, draw_setting);
     }
 }
 
-pub fn open_preference_tab(preference: &mut Preference) {
+pub fn open_preference_tab(preference: &mut Preference, draw_setting: &mut DrawSetting) {
     let _key_pos = Vec2::new(preference.window[2].position.x,
                                 preference.window[2].position.y - preference.window[2].size.y);
     match preference.selected_menu {
-        PREF_TAB_KEYBIND => {preference.scrollbar.update_scroll_max_value(5)} // Keybind
-        _ => {preference.scrollbar.update_scroll_max_value(0)} // General: Default
+        PREF_TAB_KEYBIND => {
+            preference.scrollbar.update_scroll_max_value(0);
+            preference.key_list = Vec::with_capacity(EditorKey::Count as usize);
+            for key in 0..EditorKey::Count as usize {
+                let pos = Vec2::new(preference.window[2].position.x + 10.0,
+                                        (preference.window[2].position.y + preference.window[2].size.y) - 30.0);
+                let key_text = 
+                    get_key_name(preference.config_data.key_code[key].clone(), 
+                                preference.config_data.key_code_modifier[key].clone());
+                let keylist = KeyList::new(draw_setting, 
+                    Vec2::new(pos.x, pos.y - (key as f32 * 21.0)),
+                                EditorKey::as_str(key), &key_text);
+                preference.key_list.push(keylist);
+            }
+            preference.setting_data = vec![];
+        } // Keybind
+        PREF_TAB_GENERAL => {
+            preference.scrollbar.update_scroll_max_value(0);
+            preference.key_list = vec![];
+
+            let pos: Vec2 = Vec2::new(preference.window[2].position.x + 10.0,
+                (preference.window[2].position.y + preference.window[2].size.y) - 30.0);
+            preference.setting_data = vec![
+                SettingData::Checkbox(Checkbox::new(draw_setting, Vec2::new(pos.x, pos.y), "Hide FPS?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
+                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT])),
+                SettingData::Checkbox(Checkbox::new(draw_setting, Vec2::new(pos.x, pos.y - 21.0), "Hide Something?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
+                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT])),
+                SettingData::Checkbox(Checkbox::new(draw_setting, Vec2::new(pos.x, pos.y - 42.0), "Checkbox Test", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
+                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT])),
+            ];
+        } // General: Default
+        _ => {}
     }
 }
 

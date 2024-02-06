@@ -1,6 +1,7 @@
 pub mod dialog;
 pub mod textbox;
 pub mod preference;
+pub mod checkbox;
 mod tabtext;
 mod tileset_list;
 mod scrollbar;
@@ -14,6 +15,7 @@ use graphics::*;
 pub use dialog::*;
 pub use textbox::*;
 pub use preference::*;
+pub use checkbox::*;
 use tabtext::*;
 use tileset_list::*;
 use scrollbar::*;
@@ -188,7 +190,7 @@ impl Interface {
 
         // Preference
         let mut preference = Preference::new(draw_setting);
-        open_preference_tab(&mut preference);
+        open_preference_tab(&mut preference, draw_setting);
 
         // We set the intial data of gui settings
         buttons[TOOL_DRAW].set_state(ButtonState::Selected);
