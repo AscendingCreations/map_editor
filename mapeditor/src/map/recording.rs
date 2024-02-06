@@ -1,12 +1,22 @@
-use graphics::*;
 use indexmap::IndexMap;
+use graphics::*;
+use crate::attributes::*;
 
 const MAX_CHANGE: usize = 500;
 
 #[derive(Debug)]
+pub enum RecordType {
+    RecordLayer,
+    RecordAttribute,
+    RecordZone,
+}
+
+#[derive(Debug)]
 pub struct ChangeData {
+    pub record_type: RecordType,
     pub pos: Vec3,
-    pub texture_id: i32,
+    pub id: i64,
+    pub data: Vec<InsertTypes>,
 }
 
 #[derive(Debug)]
@@ -43,7 +53,7 @@ impl Records {
         });
     }
 
-    pub fn push_undo(&mut self, pos: Vec3, texture_id: i32) {
+    pub fn push_undo(&mut self, pos: Vec3, record_type: RecordType, id: i64, data: Vec<InsertTypes>) {
         if !self.in_record {
             return;
         }
@@ -54,7 +64,11 @@ impl Records {
         if let Some(index) = self.last_index {
             let key_name = format!("{}_{}_{}", pos.x, pos.y, pos.z);
             if !self.undo[index].changes.contains_key(&key_name) {
-                self.undo[index].changes.insert(key_name, ChangeData { pos, texture_id });
+                self.undo[index].changes.insert(key_name, 
+                            ChangeData { record_type, 
+                                                pos, 
+                                                id,
+                                                data });
             }
         }
     }
@@ -76,7 +90,7 @@ impl Records {
         });
     }
 
-    pub fn push_redo(&mut self, pos: Vec3, texture_id: i32) {
+    pub fn push_redo(&mut self, pos: Vec3, record_type: RecordType, id: i64, data: Vec<InsertTypes>) {
         if !self.in_record {
             return;
         }
@@ -87,7 +101,11 @@ impl Records {
         if let Some(index) = self.last_index {
             let key_name = format!("{}_{}_{}", pos.x, pos.y, pos.z);
             if !self.redo[index].changes.contains_key(&key_name) {
-                self.redo[index].changes.insert(key_name, ChangeData { pos, texture_id });
+                self.redo[index].changes.insert(key_name, 
+                            ChangeData { record_type,
+                                                pos, 
+                                                id,
+                                                data });
             }
         }
     }

@@ -1,10 +1,15 @@
-use graphics::*;
 use cosmic_text::{Attrs, Metrics};
-use winit::dpi::PhysicalSize;
-use crate::resource::*;
-use crate::interface::{
-    create_label,
-    scrollbar::*
+use wgpu::core::device::resource;
+use graphics::*;
+
+use crate::{
+    resource::*,
+    interface::{
+        create_label,
+        scrollbar::*,
+    },
+    gfx_order::*,
+    DrawSetting,
 };
 
 const MAX_VISIBLE_LIST: u32 = 18;
@@ -45,7 +50,7 @@ impl SelectButton {
 
 pub struct TilesetList {
     pub visible: bool,
-    pub bg: Image,
+    pub bg: Vec<Rect>,
     pub selection_buttons: Vec<SelectButton>,
     pub texts: Vec<Text>,
     start_view_index: usize,
@@ -55,14 +60,18 @@ pub struct TilesetList {
 }
 
 impl TilesetList {
-    pub fn new(resource: &TextureAllocation, renderer: &mut GpuRenderer, size: &PhysicalSize<f32>, scale: f64) -> Self {
-        let mut bg = Image::new(Some(resource.tileset_list_bg.allocation), renderer, 1);
-
-        // Setup the interface position, height, width, color and texture coordinate
-        bg.pos = Vec3::new(11.0, 369.0, 3.1);
-        bg.hw = Vec2::new(200.0, 400.0);
-        bg.uv = Vec4::new(0.0, 0.0, 200.0, 400.0);
-        bg.color = Color::rgba(255, 255, 255, 255);
+    pub fn new(draw_setting: &mut DrawSetting) -> Self {
+        let mut bg = vec![
+            Rect::new(&mut draw_setting.renderer, 0), Rect::new(&mut draw_setting.renderer, 0)
+        ];
+        bg[0].set_size(Vec2::new(200.0, 400.0))
+            .set_position(Vec3::new(11.0, 369.0, ORDER_TILESETLIST))
+            .set_color(Color::rgba(50,50,50,255))
+            .set_use_camera(true);
+        bg[1].set_size(Vec2::new(8.0, 377.0))
+            .set_position(Vec3::new(200.0, 381.0, ORDER_TILESETLIST_SCROLL_BG))
+            .set_color(Color::rgba(30, 30, 30, 255))
+            .set_use_camera(true);
         
         // Tileset List and Button
         // This limit the amount of item on the list if tileset count is lower than the visible count
@@ -73,29 +82,29 @@ impl TilesetList {
         for index in 0..max_view {
             // Create the selectable buttons
             let mut button = SelectButton {
-                image: Image::new(Some(resource.tileset_list_select.allocation), renderer, 1),
+                image: Image::new(Some(draw_setting.resource.tileset_list_select.allocation), &mut draw_setting.renderer, 0),
                 in_hover: false,
                 is_selected: false,
             };
-            button.image.pos = Vec3::new(bg.pos.x + 3.0, bg.pos.y + 369.0 - (21.0 * index as f32), 3.0);
+            button.image.pos = Vec3::new(bg[0].position.x + 3.0, bg[0].position.y + 369.0 - (21.0 * index as f32), ORDER_TILESETLIST_BUTTON);
             button.image.hw = Vec2::new(183.0, 20.0);
             button.image.uv = Vec4::new(0.0, 0.0, 183.0, 20.0);
             button.image.color = Color::rgba(255, 255, 255, 255);
             selection_buttons.push(button);
 
             // Create the text
-            let mut text = create_label(renderer, size, scale,
-                        Vec3::new(bg.pos.x + 7.0, bg.pos.y + 369.0 - (21.0 * index as f32), 1.9),
+            let mut text = create_label(draw_setting,
+                        Vec3::new(bg[0].position.x + 7.0, bg[0].position.y + 369.0 - (21.0 * index as f32), ORDER_TILESETLIST_LABEL),
                         Vec2::new(100.0, 20.0),
                         Color::rgba(180, 180, 180, 255));
-            text.set_text(renderer, &resource.tilesheet[index].name, Attrs::new());
+            text.set_text(&mut draw_setting.renderer, &draw_setting.resource.tilesheet[index].name, Attrs::new());
             texts.push(text);
         };
 
         // Scrollbar
         let scrollbar_value = MAX_TILESHEET.max(MAX_VISIBLE_LIST) - MAX_VISIBLE_LIST;
-        let scrollbar = Scrollbar::new(resource, renderer,
-            Vec3::new(bg.pos.x + 188.0, bg.pos.y + 389.0, 3.0), scrollbar_value as usize, 377, 20);
+        let scrollbar = Scrollbar::new(draw_setting,
+            Vec3::new(bg[0].position.x + 188.0, bg[0].position.y + 389.0, ORDER_TILESETLIST_SCROLLBAR), scrollbar_value as usize, 377, 20);
 
         // We set the default selected tileset
         selection_buttons[0].set_select(true);
@@ -137,7 +146,7 @@ impl TilesetList {
     }
 
     // We use this function to update the list when the start view index has been adjusted
-    pub fn update_list(&mut self, resource: &TextureAllocation, renderer: &mut GpuRenderer) {
+    pub fn update_list(&mut self, renderer: &mut GpuRenderer, resource: &TextureAllocation) {
         if !self.visible {
             return;
         }
@@ -188,7 +197,8 @@ impl TilesetList {
             return;
         }
         self.visible = true;
-        self.bg.changed = true;
+        self.bg[0].changed = true;
+        self.bg[1].changed = true;
         self.scrollbar.show();
         self.selection_buttons.iter_mut().for_each(|button| {
             button.image.changed = true;

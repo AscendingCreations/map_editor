@@ -1,4 +1,14 @@
 use graphics::*;
+use winit::dpi::PhysicalSize;
+
+use crate::TextureAllocation;
+
+pub struct DrawSetting {
+    pub renderer: GpuRenderer,
+    pub size: PhysicalSize<f32>,
+    pub scale: f64,
+    pub resource: TextureAllocation,
+}
 
 pub struct Graphics<Controls>
 where
@@ -70,19 +80,12 @@ where
         );
 
         pass.render_map(renderer, &self.map_renderer, &self.map_atlas, 0);
-
         pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 0);
-
-        pass.render_map(renderer, &self.map_renderer, &self.map_atlas, 1);
-
-        pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 0);
-
         pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 0);
+        pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 1);
 
-        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 1);
-
-        pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 1);
-
-        pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 2);
+        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 2);
+        pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 2);
+        pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 3);
     }
 }

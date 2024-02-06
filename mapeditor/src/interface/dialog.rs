@@ -1,10 +1,17 @@
 use graphics::*;
 use cosmic_text::{Attrs, Metrics};
-use winit::dpi::PhysicalSize;
-use crate::resource::*;
-use crate::collection::ZOOM_LEVEL;
-use crate::interface::scrollbar::*;
 use indexmap::IndexMap;
+
+use crate::collection::ZOOM_LEVEL;
+
+use crate::{
+    gfx_order::*,
+    interface::{
+        scrollbar::*,
+        textbox::*,
+    },
+    DrawSetting,
+};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum DialogType {
@@ -38,27 +45,24 @@ pub struct DialogButton {
 }
 
 impl DialogButton {
-    pub fn new(resource: &TextureAllocation, 
-                renderer: &mut GpuRenderer, 
-                size: &PhysicalSize<f32>, 
-                scale: f64,
+    pub fn new(draw_setting: &mut DrawSetting,
                 message: &str,
                 pos: Vec2,
                 text_size: Vec2,
                 button_type: DialogButtonType) -> Self {
-        let mut image = Image::new(Some(resource.dialog_button.allocation), renderer, 1);
-        image.pos = Vec3::new(pos.x, pos.y, 0.7);
+        let mut image = Image::new(Some(draw_setting.resource.dialog_button.allocation), &mut draw_setting.renderer, 1);
+        image.pos = Vec3::new(pos.x, pos.y, ORDER_DIALOG_BUTTON);
         image.hw = Vec2::new(103.0, 36.0);
         image.uv = Vec4::new(0.0, 0.0, 103.0, 36.0);
         image.color = Color::rgba(255, 255, 255, 255);
 
         let adjust_x = 51.0 - (text_size.x * 0.5).floor();
-        let mut text = create_label(renderer, size, scale,
-            Vec3::new(pos.x + adjust_x, pos.y + 8.0, 0.6), 
+        let mut text = create_label(draw_setting,
+            Vec3::new(pos.x + adjust_x, pos.y + 8.0, ORDER_DIALOG_BUTTON_TEXT), 
             Vec2::new(text_size.x, text_size.y),
-            Bounds::new(pos.x * ZOOM_LEVEL, (pos.y + 8.0) * ZOOM_LEVEL, (pos.x + 103.0) * ZOOM_LEVEL, (pos.y + 28.0) * ZOOM_LEVEL),
-            Color::rgba(120, 120, 120, 255)); // FPS
-        text.set_text(renderer, message, Attrs::new());
+            Bounds::new(pos.x, pos.y + 8.0, pos.x + 103.0, pos.y + 28.0),
+            Color::rgba(120, 120, 120, 255));
+        text.set_text(&mut draw_setting.renderer, message, Attrs::new());
         // Adjust text x position
         let message_size = text.measure();
         text.pos.x =  pos.x + (51.0 - (message_size.x * 0.5)).floor();
@@ -95,21 +99,23 @@ impl DialogButton {
         self.in_click = in_click;
         if self.in_click {
             self.image.uv.y = 72.0;
+            self.text.pos.y = self.image.pos.y + 6.0;
         } else {
             if !self.in_hover {
                 self.image.uv.y = 0.0;
             } else {
                 self.image.uv.y = 36.0;
             }
+            self.text.pos.y = self.image.pos.y + 8.0;
         }
         self.image.changed = true;
+        self.text.changed = true;
     }
 }
 
 pub struct Dialog {
-    pub is_open: bool,
     pub dialog_type: DialogType,
-    pub bg: Image,
+    pub bg: Rect,
     pub window: Rect,
     pub buttons: Vec<DialogButton>,
     pub message: Text,
@@ -117,26 +123,24 @@ pub struct Dialog {
     // Content Data
     pub content_image: Vec<Rect>,
     pub content_text: Vec<Text>,
-    pub editor_text: Vec<Text>,
+    pub editor_textbox: Vec<Textbox>,
     pub editor_data: Vec<String>,
+    //pub editor_text: Vec<Text>,
     pub editing_index: usize,
     pub scrollbar: Scrollbar,
     start_view_index: usize, // Use for scrollbar
 }
 
 impl Dialog {
-    pub fn new(resource: &TextureAllocation,
-                renderer: &mut GpuRenderer,
-                size: &PhysicalSize<f32>,
-                scale: f64,
+    pub fn new(draw_setting: &mut DrawSetting,
                 dialog_type: DialogType,
                 data: Option<IndexMap<String, bool>>) -> Self {
         // This image is for the transparent shadow that will render behind the dialog
-        let mut bg: Image = Image::new(Some(resource.white.allocation), renderer, 1);
-        bg.pos = Vec3::new(0.0, 0.0, 0.9);
-        bg.hw = Vec2::new(size.width, size.height);
-        bg.uv = Vec4::new(2.0, 2.0, 17.0, 17.0);
-        bg.color = Color::rgba(0, 0, 0, 200);
+        let mut bg = Rect::new(&mut draw_setting.renderer, 0);
+        bg.set_position(Vec3::new(0.0, 0.0, ORDER_DIALOG_SHADOW))
+            .set_size(Vec2::new(draw_setting.size.width, draw_setting.size.height))
+            .set_color(Color::rgba(0, 0, 0, 200))
+            .set_use_camera(true);
 
         // Window and button position/size calculations
         let window_size;
@@ -156,8 +160,8 @@ impl Dialog {
                 DialogType::TypeMapLoad => 144.0,
                 _ => { 108.0 },
             });
-        window_pos = Vec2::new((size.width * 0.5) - ((window_size.x * 0.5) * ZOOM_LEVEL),
-                            (size.height * 0.5) - ((window_size.y * 0.5) * ZOOM_LEVEL)).floor();
+        window_pos = Vec2::new(((draw_setting.size.width / ZOOM_LEVEL) * 0.5) - (window_size.x * 0.5),
+                            ((draw_setting.size.height / ZOOM_LEVEL) * 0.5) - (window_size.y * 0.5)).floor();
         message_pos_y = match dialog_type {
             DialogType::TypeExitConfirm => window_pos.y + 62.0,
             DialogType::TypeMapSave => window_pos.y + 155.0,
@@ -175,34 +179,35 @@ impl Dialog {
         let buttons = match dialog_type {
             DialogType::TypeExitConfirm => {
                 vec![
-                    DialogButton::new(resource, renderer, size, scale, "Yes", button_pos, Vec2::new(103.0, 20.0), DialogButtonType::ButtonConfirm),
-                    DialogButton::new(resource, renderer, size, scale, "No", button_pos + Vec2::new(113.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonCancel),
+                    DialogButton::new(draw_setting, "Yes", button_pos, Vec2::new(103.0, 20.0), DialogButtonType::ButtonConfirm),
+                    DialogButton::new(draw_setting, "No", button_pos + Vec2::new(113.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonCancel),
                 ]
             }
             DialogType::TypeMapSave => {
                 vec![
-                    DialogButton::new(resource, renderer, size, scale, "Save", button_pos, Vec2::new(103.0, 20.0), DialogButtonType::ButtonConfirm),
-                    DialogButton::new(resource, renderer, size, scale, "Don't Save", button_pos + Vec2::new(113.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonDecline),
-                    DialogButton::new(resource, renderer, size, scale, "Cancel", button_pos + Vec2::new(226.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonCancel),
+                    DialogButton::new(draw_setting, "Save", button_pos, Vec2::new(103.0, 20.0), DialogButtonType::ButtonConfirm),
+                    DialogButton::new(draw_setting, "Don't Save", button_pos + Vec2::new(113.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonDecline),
+                    DialogButton::new(draw_setting, "Cancel", button_pos + Vec2::new(226.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonCancel),
                 ]
             }
             DialogType::TypeMapLoad => {
                 vec![
-                    DialogButton::new(resource, renderer, size, scale, "Load", button_pos, Vec2::new(103.0, 20.0), DialogButtonType::ButtonConfirm),
-                    DialogButton::new(resource, renderer, size, scale, "Cancel", button_pos + Vec2::new(113.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonCancel),
+                    DialogButton::new(draw_setting, "Load", button_pos, Vec2::new(103.0, 20.0), DialogButtonType::ButtonConfirm),
+                    DialogButton::new(draw_setting, "Cancel", button_pos + Vec2::new(113.0, 0.0), Vec2::new(103.0, 20.0), DialogButtonType::ButtonCancel),
                 ]
             }
             _ => {vec![]}
         };
 
         // This will be the dialog window
-        let mut window = Rect::new(renderer, 0);
+        let mut window = Rect::new(&mut draw_setting.renderer, 0);
         window.set_size(window_size)
-            .set_position(Vec3::new(window_pos.x, window_pos.y, 0.8))
+            .set_position(Vec3::new(window_pos.x, window_pos.y, ORDER_DIALOG_WINDOW))
             .set_radius(3.0)
             .set_border_color(Color::rgba(10, 10, 10, 255))
             .set_border_width(2.0)
-            .set_color(Color::rgba(50,50,50,255));
+            .set_color(Color::rgba(50,50,50,255))
+            .set_use_camera(true);
 
         let msg = match dialog_type {
             DialogType::TypeExitConfirm => "Are you sure that you want to close the editor?",
@@ -212,12 +217,12 @@ impl Dialog {
         };
 
         // Message
-        let mut message = create_label(renderer, size, scale,
-            Vec3::new(300.0, message_pos_y, 0.7), 
+        let mut message = create_label(draw_setting,
+            Vec3::new(300.0, message_pos_y, ORDER_DIALOG_MSG), 
             Vec2::new(window_size.x, 20.0),
-            Bounds::new(window_pos.x * ZOOM_LEVEL, message_pos_y * ZOOM_LEVEL, (window_pos.x + window_size.x) * ZOOM_LEVEL, (message_pos_y + 20.0) * ZOOM_LEVEL),
+            Bounds::new(window_pos.x, message_pos_y, window_pos.x + window_size.x, message_pos_y + 20.0),
             Color::rgba(120, 120, 120, 255)); // FPS
-        message.set_text(renderer, msg, Attrs::new());
+        message.set_text(&mut draw_setting.renderer, msg, Attrs::new());
         // Adjust message x position based on message text
         let message_size = message.measure();
         message.pos.x = window_pos.x + ((window_size.x * 0.5) - (message_size.x * 0.5)).floor();
@@ -236,7 +241,8 @@ impl Dialog {
                 text_data
             },
             DialogType::TypeMapLoad => {
-                vec![String::new(); 3]
+                //vec![String::new(); 3]
+                Vec::with_capacity(0)
             },
             _ => { Vec::with_capacity(0) },
         };
@@ -248,40 +254,18 @@ impl Dialog {
                 let label_box_size = Vec2::new(364.0, 85.0);
                 let label_box_pos = Vec2::new(window_pos.x + ((window_size.x * 0.5) - (label_box_size.x * 0.5)).floor(), window_pos.y + 65.0);
                 scrollbar_x = label_box_pos.x;
-                let mut label_box = Rect::new(renderer, 0);
+                let mut label_box = Rect::new(&mut draw_setting.renderer, 0);
                 label_box.set_size(label_box_size)
-                        .set_position(Vec3::new(label_box_pos.x, label_box_pos.y, 0.75))
-                        .set_color(Color::rgba(60, 60, 60, 255));
+                        .set_position(Vec3::new(label_box_pos.x, label_box_pos.y, ORDER_DIALOG_CONTENT_IMG1))
+                        .set_color(Color::rgba(60, 60, 60, 255))
+                        .set_use_camera(true);
 
-                let mut scrollbar_box = Rect::new(renderer, 0);
+                let mut scrollbar_box = Rect::new(&mut draw_setting.renderer, 0);
                 scrollbar_box.set_size(Vec2::new(8.0, label_box_size.y - 4.0))
-                        .set_position(Vec3::new(label_box.position.x + 354.0, label_box.position.y + 2.0, 0.7))
-                        .set_color(Color::rgba(40, 40, 40, 255));
+                        .set_position(Vec3::new(label_box.position.x + 354.0, label_box.position.y + 2.0, ORDER_DIALOG_CONTENT_IMG2))
+                        .set_color(Color::rgba(40, 40, 40, 255))
+                        .set_use_camera(true);
                 vec![label_box, scrollbar_box]
-            }
-            DialogType::TypeMapLoad => {
-                // Text Size = X[10] Y[10] Group[45]
-                let textbox_total_size = 240.0; // [10][50][5][10][50][5][45][50]
-                let content_pos = Vec2::new(window_pos.x + ((window_size.x * 0.5) - (textbox_total_size * 0.5)), window_pos.y + 66.0).floor();
-                let mut mapx = Rect::new(renderer, 0);
-                mapx.set_size(Vec2::new(50.0, 24.0))
-                            .set_position(Vec3::new(content_pos.x + 15.0, content_pos.y, 0.7))
-                            .set_border_color(Color::rgba(150, 150, 150, 255))
-                            .set_border_width(1.0)
-                            .set_color(Color::rgba(80,80,80,255));
-                let mut mapy = Rect::new(renderer, 0);
-                mapy.set_size(Vec2::new(50.0, 24.0))
-                            .set_position(Vec3::new(content_pos.x + 85.0, content_pos.y, 0.7))
-                            .set_border_color(Color::rgba(80, 80, 80, 255))
-                            .set_border_width(1.0)
-                            .set_color(Color::rgba(80,80,80,255));
-                let mut mapgroup = Rect::new(renderer, 0);
-                mapgroup.set_size(Vec2::new(50.0, 24.0))
-                            .set_position(Vec3::new(content_pos.x + 190.0, content_pos.y, 0.7))
-                            .set_border_color(Color::rgba(80, 80, 80, 255))
-                            .set_border_width(1.0)
-                            .set_color(Color::rgba(80,80,80,255));
-                vec![mapx, mapy, mapgroup]
             }
             _ => { Vec::with_capacity(0) },
         };
@@ -291,15 +275,15 @@ impl Dialog {
                 for index in 0..4 {
                     let label_size = Vec2::new(362.0, 20.0);
                     let content_pos = Vec2::new(window_pos.x + ((window_size.x * 0.5) - (label_size.x * 0.5)).floor(), window_pos.y + 129.0 - (21.0 * index as f32)).floor();
-                    let mut text = create_label(renderer, size, scale,
-                        Vec3::new(content_pos.x, content_pos.y, 0.7), 
+                    let mut text = create_label(draw_setting,
+                        Vec3::new(content_pos.x, content_pos.y, ORDER_DIALOG_CONTENT_TEXT), 
                         label_size,
-                        Bounds::new(content_pos.x * ZOOM_LEVEL, content_pos.y * ZOOM_LEVEL, (content_pos.x + label_size.x - 14.0) * ZOOM_LEVEL, (content_pos.y + 20.0) * ZOOM_LEVEL),
+                        Bounds::new(content_pos.x, content_pos.y, content_pos.x + label_size.x - 14.0, content_pos.y + 20.0),
                         Color::rgba(120, 120, 120, 255)); // X
                     if index < editor_data.len() {
-                        text.set_text(renderer, &editor_data[index], Attrs::new());
+                        text.set_text(&mut draw_setting.renderer, &editor_data[index], Attrs::new());
                     } else {
-                        text.set_text(renderer, "", Attrs::new());
+                        text.set_text(&mut draw_setting.renderer, "", Attrs::new());
                     }
                     data.push(text);
                 }
@@ -309,55 +293,47 @@ impl Dialog {
                 // Text Size = X[10] Y[10] Group[45]
                 let textbox_total_size = 240.0; // [10][5][50][5][10][5][50][5][45][5][50]
                 let content_pos = Vec2::new(window_pos.x + ((window_size.x * 0.5) - (textbox_total_size * 0.5)), window_pos.y + 66.0).floor();
-                let mut mapx = create_label(renderer, size, scale,
-                    Vec3::new(content_pos.x, content_pos.y, 0.7), 
+                let mut mapx = create_label(draw_setting,
+                    Vec3::new(content_pos.x, content_pos.y, ORDER_DIALOG_CONTENT_TEXT), 
                     Vec2::new(window_size.x, 20.0),
-                    Bounds::new(content_pos.x * ZOOM_LEVEL, content_pos.y * ZOOM_LEVEL, (content_pos.x + 10.0) * ZOOM_LEVEL, (content_pos.y + 20.0) * ZOOM_LEVEL),
+                    Bounds::new(content_pos.x, content_pos.y , content_pos.x + 10.0, content_pos.y + 20.0),
                     Color::rgba(120, 120, 120, 255)); // X
-                mapx.set_text(renderer, "X", Attrs::new());
-                let mut mapy = create_label(renderer, size, scale,
-                    Vec3::new(content_pos.x + 70.0, content_pos.y, 0.7), 
+                mapx.set_text(&mut draw_setting.renderer, "X", Attrs::new());
+                let mut mapy = create_label(draw_setting,
+                    Vec3::new(content_pos.x + 70.0, content_pos.y, ORDER_DIALOG_CONTENT_TEXT), 
                     Vec2::new(window_size.x, 20.0),
-                    Bounds::new((content_pos.x + 70.0) * ZOOM_LEVEL, content_pos.y * ZOOM_LEVEL, (content_pos.x + 80.0) * ZOOM_LEVEL, (content_pos.y + 20.0) * ZOOM_LEVEL),
+                    Bounds::new(content_pos.x + 70.0, content_pos.y, content_pos.x + 80.0, content_pos.y + 20.0),
                     Color::rgba(120, 120, 120, 255)); // Y
-                mapy.set_text(renderer, "Y", Attrs::new());
-                let mut mapgroup = create_label(renderer, size, scale,
-                    Vec3::new(content_pos.x + 140.0, content_pos.y, 0.7), 
+                mapy.set_text(&mut draw_setting.renderer, "Y", Attrs::new());
+                let mut mapgroup = create_label(draw_setting,
+                    Vec3::new(content_pos.x + 140.0, content_pos.y, ORDER_DIALOG_CONTENT_TEXT), 
                     Vec2::new(window_size.x, 20.0),
-                    Bounds::new((content_pos.x + 140.0) * ZOOM_LEVEL, content_pos.y * ZOOM_LEVEL, (content_pos.x + 185.0) * ZOOM_LEVEL, (content_pos.y + 20.0) * ZOOM_LEVEL),
+                    Bounds::new(content_pos.x + 140.0, content_pos.y, content_pos.x + 185.0, content_pos.y + 20.0),
                     Color::rgba(120, 120, 120, 255)); // Group
-                mapgroup.set_text(renderer, "Group", Attrs::new());
+                mapgroup.set_text(&mut draw_setting.renderer, "Group", Attrs::new());
                 vec![mapx, mapy, mapgroup]
             },
             _ => { Vec::with_capacity(0) },
         };
-        let editor_text = match dialog_type {
-            DialogType::TypeMapSave => { Vec::with_capacity(0) },
+        
+        // Textbox
+        let editor_textbox = match dialog_type {
             DialogType::TypeMapLoad => {
-                // Text Size = X[10] Y[10] Group[45]
-                let textbox_total_size = 240.0; // [10][5][50][5][10][5][50][5][45][5][50]
+                let textbox_total_size = 240.0; // [10][50][5][10][50][5][45][50]
                 let content_pos = Vec2::new(window_pos.x + ((window_size.x * 0.5) - (textbox_total_size * 0.5)), window_pos.y + 66.0).floor();
-                let mut mapx = create_label(renderer, size, scale,
-                    Vec3::new(content_pos.x + 17.0, content_pos.y, 0.6), 
-                    Vec2::new(50.0, 20.0),
-                    Bounds::new((content_pos.x + 15.0) * ZOOM_LEVEL, content_pos.y * ZOOM_LEVEL, (content_pos.x + 65.0) * ZOOM_LEVEL, (content_pos.y + 20.0) * ZOOM_LEVEL),
-                    Color::rgba(200, 200, 200, 255)); // X
-                mapx.set_text(renderer, "", Attrs::new());
-                let mut mapy = create_label(renderer, size, scale,
-                    Vec3::new(content_pos.x + 87.0, content_pos.y, 0.6), 
-                    Vec2::new(50.0, 20.0),
-                    Bounds::new((content_pos.x + 85.0) * ZOOM_LEVEL, content_pos.y * ZOOM_LEVEL, (content_pos.x + 135.0) * ZOOM_LEVEL, (content_pos.y + 20.0) * ZOOM_LEVEL),
-                    Color::rgba(200, 200, 200, 255)); // Y
-                mapy.set_text(renderer, "", Attrs::new());
-                let mut mapgroup = create_label(renderer, size, scale,
-                    Vec3::new(content_pos.x + 192.0, content_pos.y, 0.6), 
-                    Vec2::new(50.0, 20.0),
-                    Bounds::new((content_pos.x + 190.0) * ZOOM_LEVEL, content_pos.y * ZOOM_LEVEL, (content_pos.x + 240.0) * ZOOM_LEVEL, (content_pos.y + 20.0) * ZOOM_LEVEL),
-                    Color::rgba(200, 200, 200, 255)); // Group
-                mapgroup.set_text(renderer, "", Attrs::new());
-                vec![mapx, mapy, mapgroup]
-            },
-            _ => { Vec::with_capacity(0) },
+                vec![
+                    Textbox::new(draw_setting, 
+                                Vec3::new(content_pos.x + 15.0, content_pos.y, ORDER_DIALOG_CONTENT_IMG1),
+                                Vec2::new(50.0, 24.0), false),
+                    Textbox::new(draw_setting, 
+                                Vec3::new(content_pos.x + 85.0, content_pos.y, ORDER_DIALOG_CONTENT_IMG1),
+                                Vec2::new(50.0, 24.0), false),
+                    Textbox::new(draw_setting, 
+                                Vec3::new(content_pos.x + 190.0, content_pos.y, ORDER_DIALOG_CONTENT_IMG1),
+                                Vec2::new(50.0, 24.0), false),
+                ]
+            }
+            _ => { vec![] },
         };
 
         // Handle Scrollbar data
@@ -365,13 +341,12 @@ impl Dialog {
         if dialog_type == DialogType::TypeMapSave && editor_data.len() > 4 {
             scrollbar_amount = editor_data.len() - 4;
         }
-        let mut scrollbar = Scrollbar::new(resource, renderer, 
-                            Vec3::new(scrollbar_x + 353.0, window_pos.y + 145.0, 0.5), 
+        let mut scrollbar = Scrollbar::new(draw_setting, 
+                            Vec3::new(scrollbar_x + 353.0, window_pos.y + 145.0, ORDER_DIALOG_SCROLLBAR), 
                             scrollbar_amount, 75, 5);
         scrollbar.show();
 
         Self {
-            is_open: false,
             dialog_type,
             bg,
             message,
@@ -380,7 +355,7 @@ impl Dialog {
             did_click: false,
             content_image,
             content_text,
-            editor_text,
+            editor_textbox,
             editor_data,
             editing_index: 0,
             scrollbar,
@@ -428,32 +403,30 @@ impl Dialog {
         button_type
     }
 
-    pub fn update_editor_data(&mut self, renderer: &mut GpuRenderer) {
-        if self.dialog_type != DialogType::TypeMapLoad {
-            return;
-        }
-        self.editor_text[self.editing_index].set_text(renderer, &self.editor_data[self.editing_index], Attrs::new());
-    }
-
     pub fn select_text(&mut self, mouse_pos: Vec2) {
         if self.dialog_type != DialogType::TypeMapLoad {
             return;
         }
 
-        let mut selected_index = 0;
-        for (index, textbox) in self.content_image.iter_mut().enumerate() {
-            if (mouse_pos.x) >= textbox.position.x
-                && (mouse_pos.x) <= textbox.position.x + textbox.size.x
-                && (mouse_pos.y) >= textbox.position.y
-                && (mouse_pos.y) <= textbox.position.y + textbox.size.y
+        let last_selected = self.editing_index;
+        let mut selected_index = -1;
+        for (index, textbox) in self.editor_textbox.iter_mut().enumerate() {
+            if (mouse_pos.x) >= textbox.image.position.x
+                && (mouse_pos.x) <= textbox.image.position.x + textbox.image.size.x
+                && (mouse_pos.y) >= textbox.image.position.y
+                && (mouse_pos.y) <= textbox.image.position.y + textbox.image.size.y
             {
-                textbox.set_border_color(Color::rgba(180,180,180,255));
-                selected_index = index;
+                textbox.set_select(true);
+                selected_index = index as i32;
             } else {
-                textbox.set_border_color(Color::rgba(80,80,80,255));
+                textbox.set_select(false);
             }
         }
-        self.editing_index = selected_index;
+        if selected_index < 0 {
+            selected_index = last_selected as i32;
+            self.editor_textbox[last_selected].set_select(false);
+        }
+        self.editing_index = selected_index as usize;
     }
 
     pub fn update_list(&mut self, renderer: &mut GpuRenderer) {
@@ -474,21 +447,21 @@ impl Dialog {
     }
 }
 
-fn create_label(renderer: &mut GpuRenderer, 
-    size: &PhysicalSize<f32>, 
-    scale: f64,
+fn create_label(draw_setting: &mut DrawSetting,
     pos: Vec3,
     label_size: Vec2,
     bounds: Bounds,
     color: Color,
 ) -> Text {
     let mut text = Text::new(
-        renderer,
-        Some(Metrics::new(16.0, 16.0).scale(scale as f32)),
-        Vec3::new(pos.x * ZOOM_LEVEL, pos.y * ZOOM_LEVEL, pos.z), label_size, 1.0
+        &mut draw_setting.renderer,
+        Some(Metrics::new(16.0, 16.0).scale(draw_setting.scale as f32)),
+        Vec3::new(pos.x, pos.y, pos.z), label_size, 1.0
     );
-    text.set_buffer_size(renderer, size.width as i32, size.height as i32)
+    text.set_buffer_size(&mut draw_setting.renderer, draw_setting.size.width as i32, draw_setting.size.height as i32)
             .set_bounds(Some(bounds))
             .set_default_color(color);
+    text.use_camera = true;
+    text.changed = true;
     text
 }

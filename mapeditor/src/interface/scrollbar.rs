@@ -1,7 +1,7 @@
 use graphics::*;
 use guillotiere::euclid::num::Floor;
 
-use crate::resource::*;
+use crate::DrawSetting;
 
 enum TextureState {
     Normal,
@@ -21,19 +21,20 @@ pub struct Scrollbar {
     end_pos: usize,
     length: usize,
     max_scroll_size: usize,
-    min_size: usize,
+    min_bar_size: usize,
+    default_pos: Vec3,
     pub visible: bool,
 }
 
 impl Scrollbar {
-    pub fn new(resource: &TextureAllocation, renderer: &mut GpuRenderer, pos: Vec3, max_value: usize, max_scroll_size: usize, min_size: usize) -> Self {
+    pub fn new(draw_setting: &mut DrawSetting, pos: Vec3, max_value: usize, max_scroll_size: usize, min_bar_size: usize) -> Self {
         let mut images = Vec::with_capacity(3);
 
         let mut scrollbar_size = (max_scroll_size / (max_value + 1)).floor();
-        if scrollbar_size < min_size { scrollbar_size = min_size; }
+        if scrollbar_size < min_bar_size { scrollbar_size = min_bar_size; }
 
         // Top Corner of Scrollbar
-        let mut image = Image::new(Some(resource.scrollbar.allocation), renderer, 1);
+        let mut image = Image::new(Some(draw_setting.resource.scrollbar.allocation), &mut draw_setting.renderer, 1);
         image.pos = Vec3::new(pos.x, pos.y, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 0.0, 10.0, 4.0);
@@ -41,7 +42,7 @@ impl Scrollbar {
         images.push(image);
 
         // Center of Scrollbar
-        let mut image = Image::new(Some(resource.scrollbar.allocation), renderer, 1);
+        let mut image = Image::new(Some(draw_setting.resource.scrollbar.allocation), &mut draw_setting.renderer, 1);
         image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32, pos.z);
         image.hw = Vec2::new(10.0, scrollbar_size as f32);
         image.uv = Vec4::new(0.0, 5.0, 10.0, 6.0);
@@ -49,7 +50,7 @@ impl Scrollbar {
         images.push(image);
 
         // Bottom Corner of Scrollbar
-        let mut image = Image::new(Some(resource.scrollbar.allocation), renderer, 1);
+        let mut image = Image::new(Some(draw_setting.resource.scrollbar.allocation), &mut draw_setting.renderer, 1);
         image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32 - 4.0, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 12.0, 10.0, 4.0);
@@ -72,9 +73,43 @@ impl Scrollbar {
             end_pos,
             length,
             max_scroll_size,
-            min_size,
+            min_bar_size,
+            default_pos: pos,
             visible: false,
         }
+    }
+
+    pub fn update_scroll_max_value(&mut self, max_value: usize) {
+        if self.max_value == max_value {
+            reset_scrollbar(self);
+            return;
+        }
+
+        let mut scrollbar_size = (self.max_scroll_size / (max_value + 1)).floor();
+        if scrollbar_size < self.min_bar_size { scrollbar_size = self.min_bar_size; }
+
+        // Top Corner of Scrollbar
+        self.images[0].pos = Vec3::new(self.default_pos.x, self.default_pos.y, self.default_pos.z);
+        self.images[0].changed = true;
+
+        // Center of Scrollbar
+        self.images[1].pos = Vec3::new(self.default_pos.x, self.default_pos.y - scrollbar_size as f32, self.default_pos.z);
+        self.images[1].hw = Vec2::new(10.0, scrollbar_size as f32);
+        self.images[1].changed = true;
+
+        // Bottom Corner of Scrollbar
+        self.images[2].pos = Vec3::new(self.default_pos.x, self.default_pos.y - scrollbar_size as f32 - 4.0, self.default_pos.z);
+        self.images[2].changed = true;
+
+        // Reset data
+        self.end_pos = self.default_pos.y as usize - (self.max_scroll_size - scrollbar_size);
+        self.length = self.start_pos - self.end_pos;
+        self.scrollbar_size = scrollbar_size;
+        self.cur_value = 0;
+        self.in_hover = false;
+        self.in_hold = false;
+        self.hold_pos = 0.0;
+        self.max_value = max_value;
     }
 
     pub fn in_scrollbar(&mut self, mouse_pos: Vec2) -> bool {
@@ -124,9 +159,11 @@ impl Scrollbar {
         }
     }
 
-    pub fn move_scrollbar(&mut self, pos_y: f32) {
-        if !self.in_hold || !self.visible {
-            return;
+    pub fn move_scrollbar(&mut self, pos_y: f32, forced: bool) {
+        if !forced {
+            if !self.in_hold || !self.visible {
+                return;
+            }
         }
 
         let mut y = pos_y + self.hold_pos;
@@ -150,6 +187,11 @@ impl Scrollbar {
     pub fn hide(&mut self) {
         self.visible = false;
     }
+}
+
+pub fn reset_scrollbar(scrollbar: &mut Scrollbar) {
+    scrollbar.move_scrollbar(scrollbar.start_pos as f32, true);
+    scrollbar.set_hover(Vec2::new(0.0, 0.0));
 }
 
 fn set_texture_state(image: &mut Vec<Image>, state: TextureState) {

@@ -173,8 +173,6 @@ impl AdapterExt for wgpu::Adapter {
         let surface = instance.create_surface(window.clone()).unwrap();
         let caps = surface.get_capabilities(&self);
 
-        println!("{:?}", caps.formats);
-
         let rgba = caps
             .formats
             .iter()
@@ -191,8 +189,7 @@ impl AdapterExt for wgpu::Adapter {
         } else {
             panic!("Your Rendering Device does not support Bgra8UnormSrgb or Rgba8UnormSrgb");
         };
-
-        println!("surface format: {:?}", format);
+        
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,

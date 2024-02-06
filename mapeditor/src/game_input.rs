@@ -1,9 +1,6 @@
 use std::any::Any;
-
 use cosmic_text::{Attrs, Metrics};
-use graphics::*;
 use serde::{Deserialize, Serialize};
-
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -11,19 +8,17 @@ use winit::{
     keyboard::*,
     window::{WindowBuilder, WindowButtons},
 };
+use graphics::*;
 
-mod textbox;
-
-use textbox::*;
-
-use crate::collection::{TEXTURE_SIZE, ZOOM_LEVEL};
-use crate::interface::dialog::DialogButtonType;
-use crate::interface::*;
-use crate::map::*;
-use crate::map_data::*;
-use crate::resource::*;
-use crate::tileset::*;
-use crate::Content;
+use crate::{
+    collection::{TEXTURE_SIZE, ZOOM_LEVEL},
+    interface::*,
+    map::*,
+    map_data::*,
+    tileset::*,
+    Content,
+    DrawSetting,
+};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Action {
@@ -51,9 +46,9 @@ pub struct GameInput {
     pub last_mouse_pos: (f32, f32),
     presstype: PressType,
     // Tileset
-    tileset_start: Vec2,
-    tileset_end: Vec2,
-    return_size: Vec2,
+    pub tileset_start: Vec2,
+    pub tileset_end: Vec2,
+    pub return_size: Vec2,
     // Map
     selected_link_map: Option<usize>,
     pub dialog_button_press: bool,
@@ -117,111 +112,14 @@ fn get_map_pos(screen_pos: Vec2, mapview: &MapView) -> Vec2 {
     )
 }
 
-fn interact_with_map(
-    renderer: &mut GpuRenderer,
-    resource: &TextureAllocation,
-    tile_pos: Vec2,
-    gui: &mut Interface,
-    tileset: &mut Tileset,
-    mapview: &mut MapView,
-    editor_data: &mut EditorData,
-    gameinput: &mut GameInput,
-) {
-    match gui.current_setting_tab {
-        TAB_LAYER => {
-            match gui.current_tool {
-                TOOL_DRAW => {
-                    mapview.set_tile_group(
-                        tile_pos,
-                        gui.get_tab_option_data(),
-                        &tileset.map,
-                        tileset.select_start,
-                        tileset.select_size,
-                    );
-                    if editor_data.set_map_change() {
-                        update_map_name(renderer, gui, editor_data);
-                    };
-                    mapview.record.clear_redo();
-                }
-                TOOL_ERASE => {
-                    mapview.delete_tile_group(
-                        tile_pos,
-                        gui.get_tab_option_data(),
-                        tileset.select_size,
-                    );
-                    if editor_data.set_map_change() {
-                        update_map_name(renderer, gui, editor_data);
-                    };
-                    mapview.record.clear_redo();
-                }
-                TOOL_FILL => {
-                    mapview.set_tile_fill(
-                        tile_pos,
-                        gui.get_tab_option_data(),
-                        &tileset.map,
-                        tileset.select_start,
-                    );
-                    if editor_data.set_map_change() {
-                        update_map_name(renderer, gui, editor_data);
-                    };
-                    mapview.record.clear_redo();
-                }
-                TOOL_EYEDROP => {
-                    let tiledata = mapview.get_tile_data(tile_pos);
-                    let id = tiledata.id;
-                    if let Some((x, y, tile)) = resource.tile_location.get(&id)
-                    {
-                        // Change the loaded tileset
-                        gui.tileset_list.selected_tileset =
-                            tile.clone() as usize;
-                        gui.labels[LABEL_TILESET].set_text(
-                            renderer,
-                            &resource.tilesheet
-                                [gui.tileset_list.selected_tileset]
-                                .name,
-                            Attrs::new(),
-                        );
-                        tileset.change_tileset(
-                            resource,
-                            gui.tileset_list.selected_tileset,
-                        );
-                        gui.tileset_list.update_list(resource, renderer);
-
-                        // Set the selected tile position
-                        let (posx, posy) = (
-                            x / TEXTURE_SIZE,
-                            (MAX_TILE_Y - (y / TEXTURE_SIZE) - 1),
-                        );
-                        gameinput.tileset_start =
-                            Vec2::new(posx as f32, posy as f32);
-                        gameinput.tileset_end =
-                            Vec2::new(posx as f32, posy as f32);
-                        gameinput.return_size = tileset.set_selection(
-                            gameinput.tileset_start,
-                            gameinput.tileset_end,
-                        );
-                        mapview.change_selection_preview_size(
-                            gameinput.return_size,
-                        );
-                    }
-                }
-                _ => {}
-            }
-        }
-        TAB_ATTRIBUTE => {}
-        TAB_PROPERTIES => {}
-        _ => {}
-    }
-}
-
 pub fn update_map_name(
-    renderer: &mut GpuRenderer,
+    draw_setting: &mut DrawSetting,
     gui: &mut Interface,
     editor_data: &mut EditorData,
 ) {
     if editor_data.did_change(editor_data.x, editor_data.y, editor_data.group) {
         gui.labels[LABEL_MAPNAME].set_text(
-            renderer,
+            &mut draw_setting.renderer,
             &format!(
                 "Map [ X: {} Y: {} Group: {} ] Unsaved",
                 editor_data.x, editor_data.y, editor_data.group
@@ -230,7 +128,7 @@ pub fn update_map_name(
         );
     } else {
         gui.labels[LABEL_MAPNAME].set_text(
-            renderer,
+            &mut draw_setting.renderer,
             &format!(
                 "Map [ X: {} Y: {} Group: {} ]",
                 editor_data.x, editor_data.y, editor_data.group
@@ -241,12 +139,12 @@ pub fn update_map_name(
 }
 
 pub fn handle_dialog_input(
-    renderer: &mut GpuRenderer,
+    draw_setting: &mut DrawSetting,
     gameinput: &mut GameInput,
     gui: &mut Interface,
-    elwt: &winit::event_loop::EventLoopWindowTarget<()>,
     editor_data: &mut EditorData,
     mapview: &mut MapView,
+    elwt: &winit::event_loop::EventLoopWindowTarget<()>,
 ) {
     if !gameinput.dialog_button_press || gui.dialog.is_none() {
         return;
@@ -260,28 +158,19 @@ pub fn handle_dialog_input(
             DialogButtonType::ButtonConfirm => match dialogtype {
                 DialogType::TypeExitConfirm => elwt.exit(),
                 DialogType::TypeMapLoad => {
-                    let (mut x, mut y, mut group) =
-                        (0 as i32, 0 as i32, 0 as u64);
-                    for (index, data) in
-                        dialog_data.editor_data.iter().enumerate()
-                    {
-                        let value = data.parse::<i64>().unwrap_or_default();
+                    let (mut x, mut y, mut group) = (0 as i32, 0 as i32, 0 as u64);
+                    for (index, textbox) in dialog_data.editor_textbox.iter().enumerate() {
+                        let value = textbox.data.parse::<i64>().unwrap_or_default();
                         match index {
-                            1 => {
-                                y = value as i32;
-                            }
-                            2 => {
-                                group = value as u64;
-                            }
-                            _ => {
-                                x = value as i32;
-                            }
+                            1 => {y = value as i32;}
+                            2 => {group = value as u64;}
+                            _ => {x = value as i32;}
                         }
                     }
                     editor_data.init_map(x, y, group);
-                    editor_data.load_map_data(mapview);
+                    editor_data.load_map_data(&mut draw_setting.renderer, mapview);
                     editor_data.load_link_maps(mapview);
-                    update_map_name(renderer, gui, editor_data);
+                    update_map_name(draw_setting, gui, editor_data);
                     gui.close_dialog();
                 }
                 DialogType::TypeMapSave => {
@@ -303,12 +192,9 @@ pub fn handle_dialog_input(
 }
 
 pub fn handle_input(
-    renderer: &mut GpuRenderer,
-    resource: &TextureAllocation,
+    draw_setting: &mut DrawSetting,
     inputtype: InputType,
     mouse_pos: &Vec2,
-    screen_size: &PhysicalSize<f32>,
-    scale: f64,
     gameinput: &mut GameInput,
     gui: &mut Interface,
     tileset: &mut Tileset,
@@ -318,7 +204,7 @@ pub fn handle_input(
     // We convert the mouse position to render position as the y pos increase upward
     let screen_pos = Vec2::new(
         mouse_pos.x / ZOOM_LEVEL,
-        (screen_size.height - mouse_pos.y) / ZOOM_LEVEL,
+        (draw_setting.size.height - mouse_pos.y) / ZOOM_LEVEL,
     );
 
     // If dialog open, cancel all other inputs
@@ -341,9 +227,9 @@ pub fn handle_input(
             InputType::MouseLeftDownMove => {
                 if dialog.dialog_type == DialogType::TypeMapSave {
                     // Update our tileset list based on the scrollbar value
-                    dialog.scrollbar.move_scrollbar(screen_pos.y);
+                    dialog.scrollbar.move_scrollbar(screen_pos.y, false);
                     if dialog.update_scroll(dialog.scrollbar.cur_value) {
-                        dialog.update_list(renderer);
+                        dialog.update_list(&mut draw_setting.renderer);
                     }
                     dialog.scrollbar.set_hover(screen_pos);
                 }
@@ -357,15 +243,56 @@ pub fn handle_input(
         return;
     }
 
+    // If preference is open, cancel all other inputs
+    if gui.preference.is_open {
+        match inputtype {
+            InputType::MouseLeftDown => {
+                if gui.preference.scrollbar.in_scrollbar(screen_pos) {
+                    gui.preference.scrollbar.hold_scrollbar(screen_pos.y);
+                }
+
+                if !gui.preference.scrollbar.in_hold {
+                    let click_button = gui.preference.click_buttons(screen_pos);
+                    if let Some(index) = click_button {
+                        match index {
+                            0 => gui.preference.close(), // Cancel
+                            1 => { println!("Reset") }, // Reset
+                            _ => { println!("Save") }, // Save
+                        }
+                    }
+
+                    if gui.preference.select_menu_button(screen_pos) {
+                        open_preference_tab(&mut gui.preference);
+                    }
+                }
+            }
+            InputType::MouseLeftDownMove => {
+                gui.preference.scrollbar.move_scrollbar(screen_pos.y, false);
+                if gui.preference.update_scroll(gui.preference.scrollbar.cur_value) {
+                    gui.preference.update_list();
+                }
+                gui.preference.scrollbar.set_hover(screen_pos);
+            }
+            InputType::MouseMove => {
+                gui.preference.hover_buttons(screen_pos);
+                gui.preference.scrollbar.set_hover(screen_pos);
+            }
+        }
+        return;
+    }
+
     match inputtype {
         InputType::MouseLeftDown => {
             if gui.tileset_list.scrollbar.in_scrollbar(screen_pos) {
                 gui.tileset_list.scrollbar.hold_scrollbar(screen_pos.y);
             }
+            if gui.scrollbar.in_scrollbar(screen_pos) && !gui.tileset_list.scrollbar.in_hold {
+                gui.scrollbar.hold_scrollbar(screen_pos.y);
+            }
 
-            if !gui.tileset_list.scrollbar.in_hold {
+            if !gui.tileset_list.scrollbar.in_hold && !gui.scrollbar.in_hold {
                 // Check if mouse position is pointing to our tileset
-                if in_tileset(screen_pos, tileset) {
+                if in_tileset(screen_pos, tileset) && gui.current_setting_tab == TAB_LAYER {
                     // Calculate the tile position on the tileset based on mouse position
                     let tile_map_pos = get_tileset_pos(screen_pos, tileset)
                         .min(Vec2::new(
@@ -387,8 +314,7 @@ pub fn handle_input(
                 if in_map(screen_pos, mapview) {
                     mapview.record.set_undo_record();
                     interact_with_map(
-                        renderer,
-                        resource,
+                        draw_setting,
                         get_map_pos(screen_pos, mapview),
                         gui,
                         tileset,
@@ -406,50 +332,51 @@ pub fn handle_input(
                     let temp_key = editor_data.move_map(direction);
                     if temp_key.is_some() {
                         // We will store a temporary map data when changes happen
-                        editor_data.save_map_data(&mapview.maps[0], temp_key);
+                        editor_data.save_map_data(&mapview, temp_key);
                     };
                     // Load the initial map
-                    editor_data.load_map_data(mapview);
+                    editor_data.load_map_data(&mut draw_setting.renderer, mapview);
                     editor_data.load_link_maps(mapview);
-                    update_map_name(renderer, gui, editor_data);
+                    update_map_name(draw_setting, gui, editor_data);
                 }
 
                 // Tools
-                let click_button = gui.click_button(screen_pos);
-                if click_button.is_some() {
-                    let button_index = click_button.unwrap();
+                let click_button = gui.click_tool_button(screen_pos);
+                if let Some(button_index) = click_button {
                     match button_index {
                         TOOL_LOAD => {
                             gui.open_dialog(
-                                resource,
-                                renderer,
-                                screen_size,
-                                scale,
+                                draw_setting,
                                 DialogType::TypeMapLoad,
                                 None,
                             );
                         }
                         TOOL_SAVE => {
-                            editor_data.save_map_data(&mapview.maps[0], None);
-                            update_map_name(renderer, gui, editor_data);
+                            editor_data.save_map_data(&mapview, None);
+                            update_map_name(draw_setting, gui, editor_data);
                         }
                         TOOL_UNDO => {
-                            mapview.apply_undo();
+                            mapview.apply_change(&mut draw_setting.renderer, true);
                         }
                         TOOL_REDO => {
-                            mapview.apply_redo();
+                            mapview.apply_change(&mut draw_setting.renderer, false);
                         }
                         TOOL_DRAW | TOOL_ERASE | TOOL_FILL | TOOL_EYEDROP => {
                             gui.set_tool(button_index);
                         }
-                        TAB_ATTRIBUTE | TAB_LAYER | TAB_PROPERTIES => {
-                            gui.set_tab(button_index);
-                        }
-                        BUTTON_TILESET => {
+                        TAB_ATTRIBUTE | TAB_LAYER | TAB_PROPERTIES | TAB_ZONE => {
+                            gui.set_tab(draw_setting, button_index, mapview, tileset, gameinput);
                             if gui.tileset_list.visible {
                                 gui.tileset_list.hide();
-                            } else {
-                                gui.tileset_list.show();
+                            }
+                        }
+                        BUTTON_TILESET => {
+                            if gui.current_setting_tab == TAB_LAYER {
+                                if gui.tileset_list.visible {
+                                    gui.tileset_list.hide();
+                                } else {
+                                    gui.tileset_list.show();
+                                }
                             }
                         }
                         _ => {}
@@ -460,6 +387,37 @@ pub fn handle_input(
                 let click_tab_option = gui.click_tab_option(screen_pos);
                 if click_tab_option.is_some() {
                     gui.select_tab_option(click_tab_option.unwrap());
+                    // Open
+                    match gui.current_setting_tab {
+                        TAB_ATTRIBUTE => gui.open_attribute_settings(draw_setting, gui.current_tab_data + 1, vec![]),
+                        TAB_ZONE => {
+                            mapview.update_map_zone(gui.current_tab_data as usize);
+                            gui.open_zone_settings(draw_setting, mapview);
+                        },
+                        _ => {},
+                    }
+                }
+                
+                // Textbox / Buttons
+                match gui.current_setting_tab {
+                    TAB_ATTRIBUTE | TAB_ZONE => gui.select_textbox(screen_pos),
+                    TAB_PROPERTIES => {
+                        // Buttons
+                        let click_button = gui.click_buttons(screen_pos);
+                        if let Some(button_index) = click_button {
+                            match button_index {
+                                0 => {
+                                    println!("Save All");
+                                },
+                                1 => {
+                                    println!("Reset All");
+                                },
+                                2 => gui.preference.open(),
+                                _ => {},
+                            }
+                        }
+                    },
+                    _ => {},
                 }
 
                 // Tileset List
@@ -467,17 +425,17 @@ pub fn handle_input(
                     // This will process the switching of tileset
                     let tileset_index = gui.tileset_list.selected_tileset;
                     gui.labels[LABEL_TILESET].set_text(
-                        renderer,
-                        &resource.tilesheet[tileset_index].name,
+                        &mut draw_setting.renderer,
+                        &draw_setting.resource.tilesheet[tileset_index].name,
                         Attrs::new(),
                     );
-                    tileset.change_tileset(resource, tileset_index);
+                    tileset.change_tileset(&mut draw_setting.resource, tileset_index);
                     gui.tileset_list.hide();
                 }
             }
         }
         InputType::MouseLeftDownMove => {
-            if !gui.tileset_list.scrollbar.in_hold {
+            if !gui.tileset_list.scrollbar.in_hold && !gui.scrollbar.in_hold {
                 // Check if mouse position is pointing to our tileset
                 if in_tileset(screen_pos, tileset)
                     && gameinput.presstype == PressType::PressTileset
@@ -507,18 +465,10 @@ pub fn handle_input(
                     // Calculate the tile position on the map based on mouse position
                     let tile_map_pos = get_map_pos(screen_pos, mapview);
 
-                    gui.labels[LABEL_TILEPOS].set_text(
-                        renderer,
-                        &format!(
-                            "Tile [ X: {} Y: {} ]",
-                            tile_map_pos.x, tile_map_pos.y
-                        ),
-                        Attrs::new(),
-                    );
+                    gui.labels[LABEL_TILEPOS].set_text(&mut draw_setting.renderer,&format!("Tile [ X: {} Y: {} ]", tile_map_pos.x, tile_map_pos.y), Attrs::new());
 
                     interact_with_map(
-                        renderer,
-                        resource,
+                        draw_setting,
                         tile_map_pos,
                         gui,
                         tileset,
@@ -529,16 +479,20 @@ pub fn handle_input(
 
                     mapview.hover_selection_preview(tile_map_pos);
                 }
-            } else {
+            } else if gui.tileset_list.scrollbar.in_hold {
                 // Update our tileset list based on the scrollbar value
-                gui.tileset_list.scrollbar.move_scrollbar(screen_pos.y);
+                gui.tileset_list.scrollbar.move_scrollbar(screen_pos.y, false);
                 if gui
                     .tileset_list
                     .update_scroll(gui.tileset_list.scrollbar.cur_value)
                 {
-                    gui.tileset_list.update_list(resource, renderer);
+                    gui.tileset_list.update_list(&mut draw_setting.renderer, &draw_setting.resource);
                 }
                 gui.tileset_list.scrollbar.set_hover(screen_pos);
+            } else if gui.scrollbar.in_hold {
+                gui.scrollbar.move_scrollbar(screen_pos.y, false);
+                gui.update_scroll(&mut draw_setting.renderer, gui.scrollbar.cur_value);
+                gui.scrollbar.set_hover(screen_pos);
             }
         }
         InputType::MouseMove => {
@@ -549,25 +503,20 @@ pub fn handle_input(
             // Calculate the tile position on the map based on mouse position
             if in_map(screen_pos, mapview) {
                 let tile_map_pos = get_map_pos(screen_pos, mapview);
-                gui.labels[LABEL_TILEPOS].set_text(
-                    renderer,
-                    &format!(
-                        "Tile [ X: {} Y: {} ]",
-                        tile_map_pos.x, tile_map_pos.y
-                    ),
-                    Attrs::new(),
-                );
+                gui.labels[LABEL_TILEPOS].set_text(&mut draw_setting.renderer,&format!("Tile [ X: {} Y: {} ]",tile_map_pos.x, tile_map_pos.y),Attrs::new());
                 mapview.hover_selection_preview(tile_map_pos);
             }
 
             // Buttons
-            gui.hover_button(screen_pos);
+            gui.hover_tool_button(screen_pos);
+            gui.hover_buttons(screen_pos);
             // Tab Options
             gui.hover_tab_option(screen_pos);
             // Tileset List Selection
             gui.tileset_list.hover_selection(screen_pos);
             // Scrollbar
             gui.tileset_list.scrollbar.set_hover(screen_pos);
+            gui.scrollbar.set_hover(screen_pos);
         }
     }
 }
@@ -576,6 +525,7 @@ pub fn handle_key_input(
     renderer: &mut GpuRenderer,
     event: &KeyEvent,
     gui: &mut Interface,
+    mapview: &mut MapView,
 ) {
     if !event.state.is_pressed() {
         return;
@@ -584,21 +534,54 @@ pub fn handle_key_input(
     if let Some(dialog) = &mut gui.dialog {
         if dialog.dialog_type == DialogType::TypeMapLoad {
             if dialog.editing_index < 2 {
-                enter_numeric(
-                    &mut dialog.editor_data[dialog.editing_index],
-                    event,
-                    5,
-                    true,
-                );
+                dialog.editor_textbox[dialog.editing_index].enter_numeric(renderer, event, 5, true);
             } else {
-                enter_numeric(
-                    &mut dialog.editor_data[dialog.editing_index],
-                    event,
-                    5,
-                    false,
-                );
+                dialog.editor_textbox[dialog.editing_index].enter_numeric(renderer, event, 5, false);
             }
-            dialog.update_editor_data(renderer);
+        }
+    } else {
+        match gui.current_setting_tab {
+            TAB_ATTRIBUTE => {
+                let attribute = MapAttribute::convert_to_plain_enum(gui.current_tab_data + 1);
+                match attribute {
+                    MapAttribute::Warp(_, _, _, _, _) => {
+                        if gui.editor_selected_box >= 0 {
+                            if gui.editor_selected_box < 2 {
+                                gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, true);
+                            } else {
+                                gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, false);
+                            }
+                        }
+                    },
+                    MapAttribute::Sign(_) => {
+                        if gui.editor_selected_box >= 0 {
+                            gui.editor_textbox[gui.editor_selected_box as usize].enter_text(renderer, event, 100);
+                        }
+                    },
+                    _ => {},
+                }
+            },
+            TAB_ZONE => {
+                gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, false);
+                match gui.editor_selected_box {
+                    0 => {
+                        let value = gui.editor_textbox[gui.editor_selected_box as usize].data.parse::<i64>().unwrap_or_default();
+                        mapview.map_zone_setting[gui.current_tab_data as usize]
+                                .max_npc = value as u64
+                    }, // Max NPC
+                    _ => {
+                        if gui.editor_textbox[gui.editor_selected_box as usize].data.len() > 0 {
+                            let value = gui.editor_textbox[gui.editor_selected_box as usize].data.parse::<i64>().unwrap_or_default();
+                            mapview.map_zone_setting[gui.current_tab_data as usize]
+                                    .npc_id[(gui.editor_selected_box - 1) as usize] = Some(value as u64);
+                        } else {
+                            mapview.map_zone_setting[gui.current_tab_data as usize]
+                                    .npc_id[(gui.editor_selected_box - 1) as usize] = None;
+                        }
+                    }, // Npc ID
+                }
+            },
+            _ => {},
         }
     }
 }

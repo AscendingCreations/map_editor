@@ -1,6 +1,6 @@
-use crate::collection::TEXTURE_SIZE;
-use graphics::*;
 use indexmap::IndexMap;
+use graphics::*;
+use crate::collection::TEXTURE_SIZE;
 
 // Modify this based on how many tilesheet image
 pub const MAX_TILESHEET: u32 = 4;
@@ -24,8 +24,9 @@ pub struct TextureAllocation {
     pub tileset_list_select: TextureData,
     pub scrollbar: TextureData,
     pub tab_option: TextureData,
-    pub white: TextureData,
     pub dialog_button: TextureData,
+    pub option_button: TextureData,
+    pub preference_button: TextureData,
     pub tilesheet: Vec<TilesheetData>,
     // This will be used for eyedropper tool
     pub tile_location: IndexMap<usize, (u32, u32, u32)>,
@@ -101,16 +102,23 @@ impl TextureAllocation {
                 .ok_or_else(|| OtherError::new("failed to upload image"))?,
         };
 
-        let white = TextureData {
-            name: "white.png".to_string(),
-            allocation: Texture::from_file("images/gui/white.png")?
+        let dialog_button = TextureData {
+            name: "dialog_button.png".to_string(),
+            allocation: Texture::from_file("images/gui/dialog_button.png")?
                 .upload(&mut atlases[0], renderer)
                 .ok_or_else(|| OtherError::new("failed to upload image"))?,
         };
 
-        let dialog_button = TextureData {
-            name: "dialog_button.png".to_string(),
-            allocation: Texture::from_file("images/gui/dialog_button.png")?
+        let option_button = TextureData {
+            name: "option_button.png".to_string(),
+            allocation: Texture::from_file("images/gui/option_button.png")?
+                .upload(&mut atlases[0], renderer)
+                .ok_or_else(|| OtherError::new("failed to upload image"))?,
+        };
+
+        let preference_button = TextureData {
+            name: "preference_button.png".to_string(),
+            allocation: Texture::from_file("images/gui/preference_button.png")?
                 .upload(&mut atlases[0], renderer)
                 .ok_or_else(|| OtherError::new("failed to upload image"))?,
         };
@@ -131,10 +139,6 @@ impl TextureAllocation {
             // Store the tile location
             for tile in &res.tile.tiles {
                 if tile.tex_id > 0 {
-                    println!(
-                        "Tile ID: {:?} X: {:?} Y: {:?}",
-                        tile.tex_id, tile.x, tile.y
-                    );
                     tile_location.insert(tile.tex_id, (tile.x, tile.y, index));
                 }
             }
@@ -152,8 +156,9 @@ impl TextureAllocation {
             tileset_list_select,
             scrollbar,
             tab_option,
-            white,
             dialog_button,
+            option_button,
+            preference_button,
             tilesheet,
             tile_location,
         })

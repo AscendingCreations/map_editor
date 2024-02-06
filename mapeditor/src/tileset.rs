@@ -1,6 +1,10 @@
-use crate::collection::TEXTURE_SIZE;
-use crate::resource::*;
 use graphics::*;
+use crate::{
+    resource::*,
+    DrawSetting,
+    gfx_order::*,
+    collection::TEXTURE_SIZE,
+};
 
 pub const MAX_TILE_X: u32 = 10;
 pub const MAX_TILE_Y: u32 = 20;
@@ -8,26 +12,25 @@ pub const MAX_TILE_Y: u32 = 20;
 pub struct Tileset {
     pub map: Map,
     pub selected_tile: usize,
-    pub selection: Image,
+    pub selection: Rect,
     pub select_start: Vec2,
     pub select_size: Vec2,
 }
 
 impl Tileset {
     pub fn new(
-        resource: &TextureAllocation,
-        renderer: &mut GpuRenderer,
+        draw_setting: &mut DrawSetting,
     ) -> Self {
         let mut tilesheet = Tileset {
-            map: Map::new(renderer, TEXTURE_SIZE),
+            map: Map::new(&mut draw_setting.renderer, TEXTURE_SIZE),
             selected_tile: 0,
-            selection: Image::new(Some(resource.white.allocation), renderer, 1),
+            selection: Rect::new(&mut draw_setting.renderer, 0),
             select_start: Vec2::new(0.0, (MAX_TILE_Y - 1) as f32),
             select_size: Vec2::new(1.0, 1.0),
         };
 
         // Loop throughout all texture and place them on the map based on their texture location
-        for tiledata in &resource.tilesheet[tilesheet.selected_tile].tile.tiles
+        for tiledata in &draw_setting.resource.tilesheet[tilesheet.selected_tile].tile.tiles
         {
             let (id, x, y) = (
                 tiledata.tex_id,
@@ -51,15 +54,12 @@ impl Tileset {
 
         // Setup tile selection image settings
         // We set the selected tile at the very first tile
-        tilesheet.selection.pos = Vec3::new(
-            tilesheet.map.pos.x,
-            tilesheet.map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32,
-            9.0,
-        );
-        tilesheet.selection.hw =
-            Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
-        tilesheet.selection.uv = Vec4::new(2.0, 2.0, 17.0, 17.0);
-        tilesheet.selection.color = Color::rgba(80, 0, 0, 130);
+        tilesheet.selection.set_position(Vec3::new(tilesheet.map.pos.x,
+                                                tilesheet.map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32,
+                                                ORDER_TILESET_SELECTION))
+                            .set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
+                            .set_color(Color::rgba(80, 0, 0, 130))
+                            .set_use_camera(true);
 
         tilesheet
     }
@@ -80,12 +80,12 @@ impl Tileset {
         self.select_size = (end_pos - start_pos) + 1.0;
 
         // Adjust selection position and size
-        self.selection.pos = Vec3::new(
+        self.selection.set_position(Vec3::new(
             self.map.pos.x + (start_pos.x * TEXTURE_SIZE as f32),
             self.map.pos.y + (start_pos.y * TEXTURE_SIZE as f32),
-            4.0,
-        );
-        self.selection.hw = self.select_size * TEXTURE_SIZE as f32;
+            4.0
+        ));
+        self.selection.set_size(self.select_size * TEXTURE_SIZE as f32);
         self.selection.changed = true;
 
         self.select_size

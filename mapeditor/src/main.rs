@@ -32,6 +32,7 @@ mod tileset;
 mod game_input;
 mod map;
 mod map_data;
+mod gfx_order;
 
 use renderer::*;
 use interface::*;
@@ -41,6 +42,7 @@ use tileset::*;
 use game_input::*;
 use map::*;
 use map_data::*;
+use gfx_order::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 enum Axis {
@@ -167,7 +169,10 @@ async fn main() -> Result<(), AscendingError> {
         .unwrap();
 
     // get the screen size.
-    let mut size = renderer.size();
+    let size = renderer.size();
+
+    // get the Scale factor the pc currently is using for upscaling or downscaling the rendering.
+    let scale = renderer.window().current_monitor().unwrap().scale_factor();
 
     // We generate Texture atlases to use with out types.
     let mut atlases: Vec<AtlasSet> = iter::from_fn(|| {
@@ -184,27 +189,32 @@ async fn main() -> Result<(), AscendingError> {
     // and another for emojicons.
     let text_atlas = TextAtlas::new(&mut renderer).unwrap();
 
-    // get the Scale factor the pc currently is using for upscaling or downscaling the rendering.
-    let scale = renderer.window().current_monitor().unwrap().scale_factor();
-
     // Load textures image
     let resource = TextureAllocation::new(&mut atlases, &renderer)?;
 
+    // Compile all rendering data in one type for quick access and passing
+    let mut draw_setting = DrawSetting {
+        renderer,
+        size,
+        scale,
+        resource,
+    };
+
     // Initiate map editor data
-    let mut gui = Interface::new(&resource, &mut renderer, &size, scale);
-    let mut tileset = Tileset::new(&resource, &mut renderer);
+    let mut gui = Interface::new(&mut draw_setting);
+    let mut tileset = Tileset::new(&mut draw_setting);
     let mut gameinput = GameInput::new();
-    let mut mapview = MapView::new(&resource, &mut renderer);
+    let mut mapview = MapView::new(&mut draw_setting);
     let mut editor_data = EditorData::new()?;
 
     // Load the initial map
-    editor_data.load_map_data(&mut mapview);
+    editor_data.load_map_data(&mut draw_setting.renderer, &mut mapview);
     editor_data.load_link_maps(&mut mapview);
 
     // setup our system which includes Camera and projection as well as our controls.
     // for the camera.
     let system = System::new(
-        &mut renderer,
+        &mut draw_setting.renderer,
         Projection::Orthographic {
             left: 0.0,
             right: size.width,
@@ -218,14 +228,14 @@ async fn main() -> Result<(), AscendingError> {
     );
 
     // We establish the different renderers here to load their data up to use them.
-    let text_renderer = TextRenderer::new(&renderer).unwrap();
-    let image_renderer = ImageRenderer::new(&renderer).unwrap();
-    let map_renderer = MapRenderer::new(&mut renderer, 81).unwrap();
-    let ui_renderer = RectRenderer::new(&mut renderer).unwrap();
+    let text_renderer = TextRenderer::new(&draw_setting.renderer).unwrap();
+    let image_renderer = ImageRenderer::new(&draw_setting.renderer).unwrap();
+    let map_renderer = MapRenderer::new(&mut draw_setting.renderer, 81).unwrap();
+    let ui_renderer = RectRenderer::new(&mut draw_setting.renderer).unwrap();
 
     // Allow the window to be seen. hiding it then making visible speeds up
     // load times.
-    renderer.window().set_visible(true);
+    draw_setting.renderer.window().set_visible(true);
 
     // add everything into our convience type for quicker access and passing.
     let mut graphics = Graphics {
@@ -261,31 +271,32 @@ async fn main() -> Result<(), AscendingError> {
                 ref event,
                 window_id,
                 ..
-            } if window_id == renderer.window().id() => {
+            } if window_id == draw_setting.renderer.window().id() => {
                 match event {
                     WindowEvent::CloseRequested => {
                         if editor_data.got_changes() {
                             // We found changes on our map, we need to confirm if we would like to proceed to exit the editor
-                            gui.open_dialog(&resource, &mut renderer, &size, scale, DialogType::TypeMapSave, Some(editor_data.did_map_change.clone()));
+                            gui.open_dialog(&mut draw_setting, DialogType::TypeMapSave, Some(editor_data.did_map_change.clone()));
                         } else {
-                            gui.open_dialog(&resource, &mut renderer, &size, scale, DialogType::TypeExitConfirm, None);
+                            gui.open_dialog(&mut draw_setting, DialogType::TypeExitConfirm, None);
                         }
                     }
                     WindowEvent::KeyboardInput { event, .. } => {
-                        handle_key_input(&mut renderer,
+                        handle_key_input(&mut draw_setting.renderer,
                                     event,
-                                    &mut gui);
+                                    &mut gui,
+                                    &mut mapview);
                     }
                     _ => {}
                 }
             }
-            Event::AboutToWait => { renderer.window().request_redraw(); }
+            Event::AboutToWait => { draw_setting.renderer.window().request_redraw(); }
             _ => {}
         }
 
         // get the current window size so we can see if we need to resize the renderer.
-        let new_size = renderer.size();
-        let inner_size = renderer.window().inner_size();
+        let new_size = draw_setting.renderer.size();
+        let inner_size = draw_setting.renderer.window().inner_size();
 
         // if our rendering size is zero stop rendering to avoid errors.
         if new_size.width == 0.0
@@ -295,13 +306,13 @@ async fn main() -> Result<(), AscendingError> {
         { return; }
 
         // update our inputs.
-        input_handler.update(renderer.window(), &event, 1.0);
+        input_handler.update(draw_setting.renderer.window(), &event, 1.0);
 
         // update our renderer based on events here
-        if !renderer.update(&event).unwrap() { return; }
+        if !draw_setting.renderer.update(&event).unwrap() { return; }
 
-        if size != new_size {
-            size = new_size;
+        if draw_setting.size != new_size {
+            draw_setting.size = new_size;
 
             // Reset screen size for the Surface here.
             graphics.system.set_projection(Projection::Orthographic {
@@ -313,7 +324,7 @@ async fn main() -> Result<(), AscendingError> {
                 far: -100.0,
             });
 
-            renderer.update_depth_texture();
+            draw_setting.renderer.update_depth_texture();
         }
 
         // check if out close action was hit for esc
@@ -328,10 +339,8 @@ async fn main() -> Result<(), AscendingError> {
 
                 gameinput.last_mouse_pos = mouse_pos.clone();
 
-                handle_input(&mut renderer, &resource, InputType::MouseLeftDown, 
+                handle_input(&mut draw_setting, InputType::MouseLeftDown, 
                     &Vec2::new(mouse_pos.0, mouse_pos.1),
-                    &size,
-                    scale,
                     &mut gameinput,
                     &mut gui, 
                     &mut tileset,
@@ -341,10 +350,8 @@ async fn main() -> Result<(), AscendingError> {
                 if gameinput.last_mouse_pos != mouse_pos {
                     gameinput.last_mouse_pos = mouse_pos.clone();
                     
-                    handle_input(&mut renderer, &resource, InputType::MouseLeftDownMove, 
+                    handle_input(&mut draw_setting, InputType::MouseLeftDownMove, 
                         &Vec2::new(mouse_pos.0, mouse_pos.1),
-                        &size,
-                        scale,
                         &mut gameinput,
                         &mut gui,
                         &mut tileset,
@@ -356,10 +363,8 @@ async fn main() -> Result<(), AscendingError> {
             if gameinput.last_mouse_pos != mouse_pos {
                 gameinput.last_mouse_pos = mouse_pos.clone();
                 
-                handle_input(&mut renderer, &resource, InputType::MouseMove, 
+                handle_input(&mut draw_setting, InputType::MouseMove, 
                     &Vec2::new(mouse_pos.0, mouse_pos.1),
-                    &size,
-                    scale,
                     &mut gameinput,
                     &mut gui,
                     &mut tileset,
@@ -367,111 +372,216 @@ async fn main() -> Result<(), AscendingError> {
                     &mut editor_data);
             }
             mapview.record.stop_record();
-            gui.reset_button_click();
+            gui.reset_tool_button_click();
+            gui.release_click();
+            gui.preference.release_click();
+            gui.preference.scrollbar.release_scrollbar();
             if let Some(dialog) = &mut gui.dialog {
                 dialog.release_click();
                 dialog.scrollbar.release_scrollbar();
             }
             if gameinput.dialog_button_press {
-                handle_dialog_input(&mut renderer,
+                handle_dialog_input(&mut draw_setting,
                                     &mut gameinput, 
                                     &mut gui,
-                                    elwt,
                                     &mut editor_data,
-                                    &mut mapview);
+                                    &mut mapview,
+                                    elwt,);
             }
             gui.tileset_list.scrollbar.release_scrollbar();
+            gui.scrollbar.release_scrollbar();
             did_key_press[action_index(Action::Select)] = false;
         }
 
         let seconds = frame_time.seconds();
         // update our systems data to the gpu. this is the Camera in the shaders.
-        graphics.system.update(&renderer, &frame_time);
+        graphics.system.update(&draw_setting.renderer, &frame_time);
 
         // update our systems data to the gpu. this is the Screen in the shaders.
-        graphics.system.update_screen(&renderer, [new_size.width, new_size.height]);
+        graphics.system.update_screen(&draw_setting.renderer, [new_size.width, new_size.height]);
 
         // This adds the Image data to the Buffer for rendering.
-        graphics.map_renderer.map_update(&mut tileset.map, &mut renderer, &mut graphics.map_atlas, [0, 0]); // Tileset
-        graphics.image_renderer.image_update(&mut tileset.selection, &mut renderer, &mut graphics.image_atlas, 0); // Tileset Selection
         // Map View
         mapview.maps.iter_mut().for_each(|map| {
-            graphics.map_renderer.map_update(map, &mut renderer, &mut graphics.map_atlas, [0, 0]);
+            graphics.map_renderer.map_update(map, &mut draw_setting.renderer, &mut graphics.map_atlas, [0, 0]);
         });
         mapview.link_map_selection.iter_mut().for_each(|image| {
-            graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas, 0);
+            graphics.ui_renderer.rect_update(image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
         });
-        graphics.image_renderer.image_update(&mut mapview.selection_preview, &mut renderer, &mut graphics.image_atlas, 0);
+        graphics.ui_renderer.rect_update(&mut mapview.selection_preview, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
         // GUI
-        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut renderer, &mut graphics.image_atlas, 0);
+        graphics.image_renderer.image_update(&mut gui.bg_layout, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
         gui.buttons.iter_mut().for_each(|button| {
-            graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas, 0);
+            graphics.image_renderer.image_update(&mut button.image, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
         });
+        // Tab labels
+        gui.tab_labels.iter_mut().for_each(|tab_label| {
+            if tab_label.is_visible {
+                graphics.image_renderer.image_update(&mut tab_label.button, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
+                graphics.text_renderer
+                    .text_update(&mut tab_label.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                    .unwrap();
+            }
+        });
+        // Other Tab settings
         match gui.current_setting_tab {
             TAB_LAYER => {
-                for i in 0..MapLayers::Count as usize {
-                    graphics.image_renderer.image_update(&mut gui.tab_labels[i].button, &mut renderer, &mut graphics.image_atlas, 0);
-                    graphics.text_renderer
-                        .text_update(&mut gui.tab_labels[i].text, &mut graphics.text_atlas, &mut renderer, 0)
-                        .unwrap();
+                graphics.map_renderer.map_update(&mut tileset.map, &mut draw_setting.renderer, &mut graphics.map_atlas, [0, 0]); // Tileset
+                graphics.ui_renderer.rect_update(&mut tileset.selection, &mut draw_setting.renderer, &mut graphics.map_atlas, 0); // Tileset Selection
+                // Tileset List
+                if gui.tileset_list.visible {
+                    graphics.ui_renderer.rect_update(&mut gui.tileset_list.bg[0], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                    graphics.ui_renderer.rect_update(&mut gui.tileset_list.bg[1], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                    gui.tileset_list.texts.iter_mut().for_each(|text| {
+                        graphics.text_renderer
+                                    .text_update(text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                    .unwrap();
+                    });
+                    gui.tileset_list.selection_buttons.iter_mut().for_each(|button| {
+                        graphics.image_renderer.image_update(&mut button.image, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
+                    });
+                    gui.tileset_list.scrollbar.images.iter_mut().for_each(|image| {
+                        graphics.image_renderer.image_update(image, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
+                    });
                 }
             },
-            TAB_ATTRIBUTE => {},
-            TAB_PROPERTIES => {},
+            TAB_ATTRIBUTE => {
+                graphics.ui_renderer.rect_update(&mut gui.scrollbar_bg, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                gui.scrollbar.images.iter_mut().for_each(|image| {
+                    graphics.image_renderer.image_update(image, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
+                });
+                mapview.map_attributes.iter_mut().for_each(|attribute| {
+                    graphics.text_renderer
+                            .text_update(&mut attribute.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                            .unwrap();
+                    graphics.ui_renderer.rect_update(&mut attribute.image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                });
+                graphics.ui_renderer.rect_update(&mut gui.tab_opt_bg[0], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                graphics.ui_renderer.rect_update(&mut gui.tab_opt_bg[1], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                
+                // Attribute Properties
+                gui.editor_label.iter_mut().for_each(|text| {
+                    graphics.text_renderer
+                                    .text_update(text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                    .unwrap();
+                });
+                gui.editor_textbox.iter_mut().for_each(|textbox| {
+                    graphics.ui_renderer.rect_update(&mut textbox.image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                    graphics.text_renderer
+                                    .text_update(&mut textbox.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                    .unwrap();
+                });
+            },
+            TAB_PROPERTIES => {
+                graphics.ui_renderer.rect_update(&mut gui.tab_opt_bg[0], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                gui.editor_button.iter_mut().for_each(|button| {
+                    graphics.image_renderer.image_update(&mut button.image, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
+                    graphics.text_renderer
+                        .text_update(&mut button.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                        .unwrap();
+                });
+            },
+            TAB_ZONE => {
+                mapview.map_zone.iter_mut().for_each(|zone| {
+                    graphics.ui_renderer.rect_update(zone, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                });
+                graphics.ui_renderer.rect_update(&mut gui.tab_opt_bg[0], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                graphics.ui_renderer.rect_update(&mut gui.tab_opt_bg[1], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+            
+                // Zone Properties
+                gui.editor_label.iter_mut().for_each(|text| {
+                    graphics.text_renderer
+                                    .text_update(text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                    .unwrap();
+                });
+                gui.editor_textbox.iter_mut().for_each(|textbox| {
+                    graphics.ui_renderer.rect_update(&mut textbox.image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                    graphics.text_renderer
+                                    .text_update(&mut textbox.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                    .unwrap();
+                });
+            },
             _ => {},
         }
-        // Tileset List
-        if gui.tileset_list.visible {
-            graphics.image_renderer.image_update(&mut gui.tileset_list.bg, &mut renderer, &mut graphics.image_atlas, 0);
-            gui.tileset_list.texts.iter_mut().for_each(|text| {
-                graphics.text_renderer
-                            .text_update(text, &mut graphics.text_atlas, &mut renderer, 0)
-                            .unwrap();
-            });
-            gui.tileset_list.selection_buttons.iter_mut().for_each(|button| {
-                graphics.image_renderer.image_update(&mut button.image, &mut renderer, &mut graphics.image_atlas, 0);
-            });
-            gui.tileset_list.scrollbar.images.iter_mut().for_each(|image| {
-                graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas, 0);
-            });
-        }
         // Labels
-        gui.labels.iter_mut().for_each(|text| {
-            graphics.text_renderer
-                .text_update(text, &mut graphics.text_atlas, &mut renderer, 0)
-                .unwrap();
-        });
+        for index in 0..MAX_LABEL {
+            let mut can_render = true;
+            match index {
+                LABEL_OPT_HEADER_TEXT => {
+                    if gui.current_setting_tab == TAB_LAYER || 
+                        gui.current_setting_tab == TAB_PROPERTIES { can_render = false; }
+                },
+                LABEL_TILESET => {
+                    if gui.current_setting_tab != TAB_LAYER { can_render = false }
+                },
+                _ => {},
+            }
+            if can_render {
+                graphics.text_renderer
+                    .text_update(&mut gui.labels[index], &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                    .unwrap();
+            }
+        }
 
         // Dialog
         if let Some(dialog) = &mut gui.dialog {
-            graphics.image_renderer.image_update(&mut dialog.bg, &mut renderer, &mut graphics.image_atlas, 1);
-            graphics.ui_renderer.rect_update(&mut dialog.window, &mut renderer, &mut graphics.ui_atlas, 1);
+            graphics.ui_renderer.rect_update(&mut dialog.bg, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+            graphics.ui_renderer.rect_update(&mut dialog.window, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
             graphics.text_renderer
-                .text_update(&mut dialog.message, &mut graphics.text_atlas, &mut renderer, 2)
+                .text_update(&mut dialog.message, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
                 .unwrap();
             dialog.buttons.iter_mut().for_each(|dialogbutton| {
-                graphics.image_renderer.image_update(&mut dialogbutton.image, &mut renderer, &mut graphics.image_atlas, 1);
+                graphics.image_renderer.image_update(&mut dialogbutton.image, &mut draw_setting.renderer, &mut graphics.image_atlas, 2);
                 graphics.text_renderer
-                    .text_update(&mut dialogbutton.text, &mut graphics.text_atlas, &mut renderer, 2)
+                    .text_update(&mut dialogbutton.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
                     .unwrap();
             });
             dialog.content_image.iter_mut().for_each(|rect| {
-                graphics.ui_renderer.rect_update(rect, &mut renderer, &mut graphics.ui_atlas, 1);
+                graphics.ui_renderer.rect_update(rect, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
             });
             dialog.content_text.iter_mut().for_each(|text| {
                 graphics.text_renderer
-                            .text_update(text, &mut graphics.text_atlas, &mut renderer, 2)
+                            .text_update(text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
                             .unwrap();
             });
-            dialog.editor_text.iter_mut().for_each(|text| {
+            dialog.editor_textbox.iter_mut().for_each(|textbox| {
+                graphics.ui_renderer.rect_update(&mut textbox.image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
                 graphics.text_renderer
-                            .text_update(text, &mut graphics.text_atlas, &mut renderer, 2)
+                            .text_update(&mut textbox.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
                             .unwrap();
             });
             if dialog.dialog_type == DialogType::TypeMapSave {
                 dialog.scrollbar.images.iter_mut().for_each(|image| {
-                    graphics.image_renderer.image_update(image, &mut renderer, &mut graphics.image_atlas, 1);
+                    graphics.image_renderer.image_update(image, &mut draw_setting.renderer, &mut graphics.image_atlas, 2);
                 });
+            }
+        }
+
+        // Preference
+        if gui.preference.is_open {
+            graphics.ui_renderer.rect_update(&mut gui.preference.bg, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+            gui.preference.window.iter_mut().for_each(|window| {
+                graphics.ui_renderer.rect_update(window, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+            });
+            gui.preference.buttons.iter_mut().for_each(|button| {
+                graphics.image_renderer.image_update(&mut button.image, &mut draw_setting.renderer, &mut graphics.image_atlas, 2);
+                graphics.text_renderer
+                    .text_update(&mut button.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                    .unwrap();
+            });
+            gui.preference.menu_button.iter_mut().for_each(|button| {
+                graphics.ui_renderer.rect_update(&mut button.image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+                graphics.text_renderer
+                    .text_update(&mut button.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                    .unwrap();
+            });
+            gui.preference.scrollbar.images.iter_mut().for_each(|image| {
+                graphics.image_renderer.image_update(image, &mut draw_setting.renderer, &mut graphics.image_atlas, 2);
+            });
+            match gui.preference.selected_menu {
+                PREF_TAB_GENERAL => {},
+                PREF_TAB_KEYBIND => {},
+                _ => {},
             }
         }
 
@@ -479,28 +589,28 @@ async fn main() -> Result<(), AscendingError> {
         // and then uploading them to the GPU if they have moved or changed in any way. clears the
         // Image buffer for the next render pass. Image buffer only holds the ID's and Sortign info
         // of the finalized Indicies of each Image.
-        graphics.image_renderer.finalize(&mut renderer);
-        graphics.map_renderer.finalize(&mut renderer);
-        graphics.text_renderer.finalize(&mut renderer);
-        graphics.ui_renderer.finalize(&mut renderer);
+        graphics.image_renderer.finalize(&mut draw_setting.renderer);
+        graphics.map_renderer.finalize(&mut draw_setting.renderer);
+        graphics.text_renderer.finalize(&mut draw_setting.renderer);
+        graphics.ui_renderer.finalize(&mut draw_setting.renderer);
 
         // Start encoding commands. this stores all the rendering calls for execution when
         // finish is called.
-        let mut encoder = renderer.device().create_command_encoder(
+        let mut encoder = draw_setting.renderer.device().create_command_encoder(
             &wgpu::CommandEncoderDescriptor {
                 label: Some("command encoder"),
             },
         );
 
         // Run the render pass. for the games renderer
-        graphics.render(&renderer, &mut encoder);
+        graphics.render(&draw_setting.renderer, &mut encoder);
 
         // Submit our command queue. for it to upload all the changes that were made.
         // Also tells the system to begin running the commands on the GPU.
-        renderer.queue().submit(std::iter::once(encoder.finish()));
+        draw_setting.renderer.queue().submit(std::iter::once(encoder.finish()));
 
         if time < seconds {
-            gui.labels[LABEL_FPS].set_text(&mut renderer, &format!("FPS: {fps}"), Attrs::new());
+            gui.labels[LABEL_FPS].set_text(&mut draw_setting.renderer, &format!("FPS: {fps}"), Attrs::new());
             fps = 0u32;
             time = seconds + 1.0;
         }
@@ -508,7 +618,7 @@ async fn main() -> Result<(), AscendingError> {
 
         input_handler.end_frame();
         frame_time.update();
-        renderer.present().unwrap();
+        draw_setting.renderer.present().unwrap();
 
         // These clear the Last used image tags.
         //Can be used later to auto unload things not used anymore if ram/gpu ram becomes a issue.

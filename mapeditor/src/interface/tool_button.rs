@@ -7,7 +7,7 @@ pub enum ButtonState {
     Selected,
 }
 
-pub struct Tool {
+pub struct ToolButton {
     pub index: usize,
     pub image: Image,
     pub state: ButtonState,
@@ -15,7 +15,7 @@ pub struct Tool {
     pub in_click: bool,
 }
 
-impl Tool {
+impl ToolButton {
     pub fn set_state(&mut self, state: ButtonState) {
         if self.state != state {
             self.state = state;

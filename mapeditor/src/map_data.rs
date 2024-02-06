@@ -1,11 +1,14 @@
-use graphics::*;
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::path::Path;
 use indexmap::IndexMap;
+use graphics::*;
 
-use crate::map::*;
+use crate::{
+    map::*,
+    attributes::*,
+};
 
 #[derive(Debug)]
 pub enum Direction {
@@ -110,7 +113,7 @@ impl EditorData {
         temp_key
     }
 
-    pub fn save_map_data(&mut self, map: &Map, old_map_key: Option<String>) {
+    pub fn save_map_data(&mut self, mapview: &MapView, old_map_key: Option<String>) {
         // Check if the map should be save as file or temporary data
         let (should_save, find_key);
         if old_map_key.is_some() {
@@ -122,14 +125,25 @@ impl EditorData {
         }
         // This handles the copying of data from map tiles to map data
         if let Some(mapdata) = self.maps.get_mut(&find_key) {
-            (0..8).for_each(|layer| {
-                (0..32).for_each(|x| {
-                    (0..32).for_each(|y| {
-                        let tile_num = get_tile_pos(x, y);
-                        mapdata.tile[layer].id[tile_num] = map.get_tile((x as u32, y as u32, layer as u32)).id as u32;
+            (0..32).for_each(|x| {
+                (0..32).for_each(|y| {
+                    let tile_num = get_tile_pos(x, y);
+                    (0..8).for_each(|layer| {
+                        mapdata.tile[layer].id[tile_num] = mapview.maps[0].get_tile((x as u32, y as u32, layer as u32)).id as u32;
                     });
+                    mapdata.attribute[tile_num] = mapview.map_attributes[tile_num].attribute.clone();
                 });
             });
+            for i in 0..5 {
+                mapdata.zonespawns[i] = Vec::new();
+                mapview.map_zone_loc[i].pos.iter().for_each(|zone_pos| {
+                    mapdata.zonespawns[i].push((zone_pos.x as u16, zone_pos.y as u16));
+                });
+                mapdata.zones[i].0 = mapview.map_zone_setting[i].max_npc;
+                for npc_index in 0..5 {
+                    mapdata.zones[i].1[npc_index] = mapview.map_zone_setting[i].npc_id[npc_index];
+                }
+            }
             if should_save {
                 mapdata.save_file().unwrap();
                 // Since we have saved the map, let's mark the map as 'no change'
@@ -151,15 +165,15 @@ impl EditorData {
         }
     }
     
-    pub fn load_map_data(&mut self, map: &mut MapView) {
+    pub fn load_map_data(&mut self, renderer: &mut GpuRenderer, map: &mut MapView) {
         // Clear the map before we start adding the tiles
         map.clear_map(0);
         // Add the tiles
         if let Some(mapdata) = self.maps.get(&self.current_index) {
-            (0..8).for_each(|layer| {
-                (0..32).for_each(|x| {
-                    (0..32).for_each(|y| {
-                        let tile_num = get_tile_pos(x, y);
+            (0..32).for_each(|x| {
+                (0..32).for_each(|y| {
+                    let tile_num = get_tile_pos(x, y);
+                    (0..8).for_each(|layer| {
                         let id = mapdata.tile[layer].id[tile_num] as usize;
                         if id > 0 {
                             map.maps[0].set_tile((x as u32, y as u32, layer as u32), 
@@ -169,8 +183,19 @@ impl EditorData {
                                         });
                         }
                     });
+                    map.map_attributes[tile_num].set_attribute(renderer, mapdata.attribute[tile_num].clone());
                 });
             });
+            for i in 0..5 {
+                map.map_zone_loc[i].pos = Vec::new();
+                mapdata.zonespawns[i].iter().for_each(|zone| {
+                    map.map_zone_loc[i].pos.push(Vec2::new(zone.0 as f32, zone.1 as f32));
+                });
+                map.map_zone_setting[i].max_npc = mapdata.zones[i].0;
+                for npc_index in 0..5 {
+                    map.map_zone_setting[i].npc_id[npc_index] = mapdata.zones[i].1[npc_index];
+                }
+            }
         }
     }
 
@@ -237,9 +262,9 @@ impl EditorData {
 
                 // Add the tiles
                 if let Some(mapdata) = self.maps.get(&key) {
-                    (0..8).for_each(|layer| {
-                        (0..size.x as i32).for_each(|x| {
-                            (0..size.y as i32).for_each(|y| {
+                    (0..size.x as i32).for_each(|x| {
+                        (0..size.y as i32).for_each(|y| {
+                            (0..8).for_each(|layer| {
                                 let tile_num = get_tile_pos(start.x as i32 + x, start.y as i32 + y);
                                 let id = mapdata.tile[layer].id[tile_num] as usize;
                                 
@@ -290,6 +315,9 @@ pub struct MapData {
     pub y: i32,
     pub group: u64,
     pub tile: Vec<Tile>,
+    pub attribute: Vec<MapAttribute>,
+    pub zonespawns: [Vec<(u16, u16)>; 5],
+    pub zones: [(u64, [Option<u64>; 5]); 5],
 }
 
 impl MapData {
@@ -299,6 +327,9 @@ impl MapData {
             y,
             group,
             tile: vec![Tile { id: vec![0; 1024] }; 8],
+            attribute: vec![MapAttribute::Walkable; 1024],
+            zonespawns: Default::default(),
+            zones: Default::default(),
         }
     }
 
