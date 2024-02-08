@@ -21,6 +21,8 @@ use crate::{
         button::*,
         scrollbar::*,
         checkbox::*,
+        color_selection::*,
+        label::*,
     },
     DrawSetting,
 };
@@ -127,12 +129,15 @@ impl KeyList {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct KeybindData {
+pub struct ConfigData {
     pub key_code: Vec<Key>,
     pub key_code_modifier: Vec<[bool; 3]>,
+    pub hide_fps: bool,
+    pub map_selection_color: [u8; 4],
+    pub tile_selection_color: [u8; 4],
 }
 
-impl KeybindData {
+impl ConfigData {
     pub fn default() -> Self {
         let mut key_code = Vec::new();
         let mut key_code_modifier = Vec::new();
@@ -165,6 +170,9 @@ impl KeybindData {
         Self {
             key_code,
             key_code_modifier,
+            hide_fps: false,
+            map_selection_color: [0, 0, 150, 150],
+            tile_selection_color: [80, 0, 0, 150],
         }
     }
 
@@ -185,7 +193,7 @@ impl KeybindData {
     }
 }
 
-pub fn create_config(data: &KeybindData) -> Result<(), AscendingError> {
+pub fn create_config(data: &ConfigData) -> Result<(), AscendingError> {
     let name = "./config.json".to_string();
 
     match OpenOptions::new().write(true).create_new(true).open(&name) {
@@ -201,10 +209,10 @@ pub fn create_config(data: &KeybindData) -> Result<(), AscendingError> {
     }
 }
 
-pub fn load_config() -> Result<KeybindData, AscendingError> {
+pub fn load_config() -> Result<ConfigData, AscendingError> {
     if !is_config_exist() {
-        let data = KeybindData::default();
-        match create_config(&KeybindData::default()) {
+        let data = ConfigData::default();
+        match create_config(&ConfigData::default()) {
             Ok(()) => return Ok(data),
             Err(e) => return Err(e),
         }
@@ -219,7 +227,7 @@ pub fn load_config() -> Result<KeybindData, AscendingError> {
                 Ok(data) => Ok(data),
                 Err(e) => {
                     println!("Error {:?}", e);
-                    Ok(KeybindData::default())
+                    Ok(ConfigData::default())
                 }
             }
         }
@@ -234,7 +242,9 @@ pub fn is_config_exist() -> bool {
 
 pub enum SettingData {
     None,
-    Checkbox(Checkbox)
+    Checkbox(Checkbox),
+    Label(Text),
+    ColorSelection(ColorSelection),
 }
 
 pub struct Preference {
@@ -246,9 +256,12 @@ pub struct Preference {
     pub scrollbar: Scrollbar,
     reset_button: bool,
     pub selected_menu: usize,
-    pub config_data: KeybindData,
+    pub config_data: ConfigData,
     // General
     pub setting_data: Vec<SettingData>,
+    // Color selection
+    pub is_coloreditor_open: Option<usize>,
+    pub editing_index: usize,
     // Keybind
     pub key_list: Vec<KeyList>,
     pub keywindow: KeybindWindow,
@@ -329,7 +342,7 @@ impl Preference {
         // Config data
         let config_data = match load_config() {
             Ok(data) => data,
-            Err(_) => KeybindData::default(),
+            Err(_) => ConfigData::default(),
         };
         
         Self {
@@ -345,6 +358,8 @@ impl Preference {
             key_list: Vec::new(),
             keywindow,
             config_data,
+            is_coloreditor_open: None,
+            editing_index: 0,
         }
     }
 
@@ -414,10 +429,35 @@ impl Preference {
                             } else {
                                 checkbox.set_hover(false);
                             }
-                        }
+                        },
+                        SettingData::ColorSelection(colorselection) => {
+                            if (mouse_pos.x) >= colorselection.image.position.x
+                                && (mouse_pos.x) <= colorselection.image.position.x + colorselection.image.size.x
+                                && (mouse_pos.y) >= colorselection.image.position.y
+                                && (mouse_pos.y) <= colorselection.image.position.y + colorselection.image.size.y {
+                                colorselection.set_hover(true);
+                            } else {
+                                colorselection.set_hover(false);
+                            }
+                        },
                         _ => {},
                     }
                 });
+
+                if let Some(index) = self.is_coloreditor_open {
+                    if let SettingData::ColorSelection(colorselection) = &mut self.setting_data[index] {
+                        if colorselection.color_editor.is_open {
+                            if (mouse_pos.x) >= colorselection.color_editor.button.image.pos.x
+                                && (mouse_pos.x) <= colorselection.color_editor.button.image.pos.x + colorselection.color_editor.button.image.hw.x
+                                && (mouse_pos.y) >= colorselection.color_editor.button.image.pos.y
+                                && (mouse_pos.y) <= colorselection.color_editor.button.image.pos.y + colorselection.color_editor.button.image.hw.y {
+                                colorselection.color_editor.button.set_hover(true);
+                            } else {
+                                colorselection.color_editor.button.set_hover(false);
+                            }
+                        }
+                    }
+                }
             },
             _ => {},
         }
@@ -433,6 +473,16 @@ impl Preference {
         self.buttons.iter_mut().for_each(|button| {
             button.set_click(false);
         });
+        // Color Selection Button
+        if self.selected_menu == PREF_TAB_GENERAL {
+            if let Some(index) = self.is_coloreditor_open {
+                if let SettingData::ColorSelection(colorselection) = &mut self.setting_data[index] {
+                    if colorselection.color_editor.is_open {
+                        colorselection.color_editor.button.set_click(false);
+                    }
+                }
+            }
+        }
     }
 
     // This function check which buttons are within the click position and return the button index
@@ -454,6 +504,27 @@ impl Preference {
             self.reset_button = true; // This remind us that a button has been clicked and needed to be reset
         }
         found_button
+    }
+    pub fn click_color_selection_button(&mut self, mouse_pos: Vec2) -> bool {
+        if self.selected_menu != PREF_TAB_GENERAL {
+            return false;
+        }
+        if let Some(index) = self.is_coloreditor_open {
+            if let SettingData::ColorSelection(colorselection) = &mut self.setting_data[index] {
+                if colorselection.color_editor.is_open {
+                    colorselection.color_editor.button.set_click(false);
+                    if (mouse_pos.x) >= colorselection.color_editor.button.image.pos.x
+                        && (mouse_pos.x) <= colorselection.color_editor.button.image.pos.x + colorselection.color_editor.button.image.hw.x
+                        && (mouse_pos.y) >= colorselection.color_editor.button.image.pos.y
+                        && (mouse_pos.y) <= colorselection.color_editor.button.image.pos.y + colorselection.color_editor.button.image.hw.y {
+                        colorselection.color_editor.button.set_click(true);
+                        self.reset_button = true;
+                        return true;
+                    }
+                }
+            }
+        }
+        false
     }
 
     pub fn select_menu_button(&mut self, mouse_pos: Vec2) -> bool {
@@ -497,6 +568,34 @@ impl Preference {
         found_button
     }
 
+    pub fn select_config(&mut self, mouse_pos: Vec2) -> Option<usize> {
+        let mut found_button = None;
+        for (index, config) in self.setting_data.iter().enumerate() {
+            match config {
+                SettingData::Checkbox(checkbox) => {
+                    if (mouse_pos.x) >= checkbox.window[0].position.x
+                        && (mouse_pos.x) <= checkbox.window[0].position.x + checkbox.window[0].size.x
+                        && (mouse_pos.y) >= checkbox.window[0].position.y
+                        && (mouse_pos.y) <= checkbox.window[0].position.y + checkbox.window[0].size.y {
+                        found_button = Some(index);
+                        break;
+                    }
+                },
+                SettingData::ColorSelection(colorselection) => {
+                    if (mouse_pos.x) >= colorselection.image.position.x
+                        && (mouse_pos.x) <= colorselection.image.position.x + colorselection.image.size.x
+                        && (mouse_pos.y) >= colorselection.image.position.y
+                        && (mouse_pos.y) <= colorselection.image.position.y + colorselection.image.size.y {
+                        found_button = Some(index);
+                        break;
+                    }
+                },
+                _ => {},
+            }
+        }
+        found_button
+    }
+
     pub fn update_scroll(&mut self, _cur_value: usize) -> bool {
         // Scrollbar is not being used on any tabs, but it will be kept for future expansion
         false
@@ -519,8 +618,71 @@ impl Preference {
 
     pub fn reset_preference(&mut self, draw_setting: &mut DrawSetting) {
         // Reset data
-        self.config_data = KeybindData::default();
+        self.config_data = ConfigData::default();
         open_preference_tab(self, draw_setting);
+    }
+
+    pub fn select_text(&mut self, mouse_pos: Vec2) {
+        if self.selected_menu != PREF_TAB_GENERAL || self.is_coloreditor_open.is_none() {
+            return;
+        }
+        if let Some(config_index) = self.is_coloreditor_open {
+            match &mut self.setting_data[config_index] {
+                SettingData::ColorSelection(colorselection) => {
+                    if !colorselection.color_editor.is_open {
+                        return;
+                    }
+                    let last_selected = self.editing_index;
+                    let mut selected_index = -1;
+                    for (index, textbox) in colorselection.color_editor.textbox.iter_mut().enumerate() {
+                        if (mouse_pos.x) >= textbox.image.position.x
+                            && (mouse_pos.x) <= textbox.image.position.x + textbox.image.size.x
+                            && (mouse_pos.y) >= textbox.image.position.y
+                            && (mouse_pos.y) <= textbox.image.position.y + textbox.image.size.y
+                        {
+                            textbox.set_select(true);
+                            selected_index = index as i32;
+                        } else {
+                            textbox.set_select(false);
+                        }
+                    }
+                    if selected_index < 0 {
+                        selected_index = last_selected as i32;
+                        colorselection.color_editor.textbox[last_selected].set_select(false);
+                    }
+                    self.editing_index = selected_index as usize;
+                },
+                _ => return,
+            }
+        }
+    }
+
+    pub fn hide_color_selection(&mut self) {
+        // Hide color selection if it is visible
+        if let Some(index) = self.is_coloreditor_open {
+            if let SettingData::ColorSelection(colorselection) = &mut self.setting_data[index] {
+                colorselection.close_color_editor();
+            }
+            self.is_coloreditor_open = None;
+        }
+    }
+
+    pub fn in_color_selection(&mut self, mouse_pos: Vec2) -> bool {
+        if self.is_coloreditor_open.is_none() || self.selected_menu != PREF_TAB_GENERAL {
+            return false
+        }
+        if let Some(index) = self.is_coloreditor_open {
+            if let SettingData::ColorSelection(colorselection) = &mut self.setting_data[index] {
+                if (mouse_pos.x) >= colorselection.color_editor.window.position.x
+                    && (mouse_pos.x) <= colorselection.color_editor.window.position.x + colorselection.color_editor.window.size.x
+                    && (mouse_pos.y) >= colorselection.color_editor.window.position.y
+                    && (mouse_pos.y) <= colorselection.color_editor.window.position.y + colorselection.color_editor.window.size.y
+                {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -529,6 +691,7 @@ pub fn open_preference_tab(preference: &mut Preference, draw_setting: &mut DrawS
                                 preference.window[2].position.y - preference.window[2].size.y);
     match preference.selected_menu {
         PREF_TAB_KEYBIND => {
+            preference.is_coloreditor_open = None;
             preference.scrollbar.update_scroll_max_value(0);
             preference.key_list = Vec::with_capacity(EditorKey::Count as usize);
             for key in 0..EditorKey::Count as usize {
@@ -545,6 +708,7 @@ pub fn open_preference_tab(preference: &mut Preference, draw_setting: &mut DrawS
             preference.setting_data = vec![];
         } // Keybind
         PREF_TAB_GENERAL => {
+            preference.is_coloreditor_open = None;
             preference.scrollbar.update_scroll_max_value(0);
             preference.key_list = vec![];
 
@@ -553,31 +717,10 @@ pub fn open_preference_tab(preference: &mut Preference, draw_setting: &mut DrawS
             preference.setting_data = vec![
                 SettingData::Checkbox(Checkbox::new(draw_setting, Vec2::new(pos.x, pos.y), "Hide FPS?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
                         [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT])),
-                SettingData::Checkbox(Checkbox::new(draw_setting, Vec2::new(pos.x, pos.y - 21.0), "Hide Something?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
-                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT])),
-                SettingData::Checkbox(Checkbox::new(draw_setting, Vec2::new(pos.x, pos.y - 42.0), "Checkbox Test", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
-                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT])),
+                SettingData::ColorSelection(ColorSelection::new(draw_setting, Vec3::new(pos.x, pos.y - 24.0, ORDER_PREFERENCE_SETTING_IMG1), Vec2::new(70.0, 20.0), preference.config_data.map_selection_color, Some("Map Selection Color"), false)),
+                SettingData::ColorSelection(ColorSelection::new(draw_setting, Vec3::new(pos.x, pos.y - 48.0, ORDER_PREFERENCE_SETTING_IMG1), Vec2::new(70.0, 20.0), preference.config_data.tile_selection_color, Some("Tile Selection Color"), false)),
             ];
         } // General: Default
         _ => {}
     }
-}
-
-fn create_label(draw_setting: &mut DrawSetting,
-    pos: Vec3,
-    label_size: Vec2,
-    bounds: Bounds,
-    color: Color,
-) -> Text {
-    let mut text = Text::new(
-        &mut draw_setting.renderer,
-        Some(Metrics::new(16.0, 16.0).scale(draw_setting.scale as f32)),
-        Vec3::new(pos.x, pos.y, pos.z), label_size, 1.0
-    );
-    text.set_buffer_size(&mut draw_setting.renderer, draw_setting.size.width as i32, draw_setting.size.height as i32)
-            .set_bounds(Some(bounds))
-            .set_default_color(color);
-    text.use_camera = true;
-    text.changed = true;
-    text
 }

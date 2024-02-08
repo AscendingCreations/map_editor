@@ -207,6 +207,20 @@ async fn main() -> Result<(), AscendingError> {
     let mut mapview = MapView::new(&mut draw_setting);
     let mut editor_data = EditorData::new()?;
 
+    // Apply settings
+    mapview.selection_preview.set_color(Color::rgba(
+        gui.preference.config_data.map_selection_color[0],
+        gui.preference.config_data.map_selection_color[1],
+        gui.preference.config_data.map_selection_color[2],
+        150,
+    ));
+    tileset.selection.set_color(Color::rgba(
+        gui.preference.config_data.tile_selection_color[0],
+        gui.preference.config_data.tile_selection_color[1],
+        gui.preference.config_data.tile_selection_color[2],
+        150,
+    ));
+
     // Load the initial map
     editor_data.load_map_data(&mut draw_setting.renderer, &mut mapview);
     editor_data.load_link_maps(&mut mapview);
@@ -281,7 +295,7 @@ async fn main() -> Result<(), AscendingError> {
                             }
                             gui.preference.config_data = match load_config() {
                                 Ok(data) => data,
-                                Err(_) => KeybindData::default(),
+                                Err(_) => ConfigData::default(),
                             };
                             gui.preference.close();
                         }
@@ -393,6 +407,7 @@ async fn main() -> Result<(), AscendingError> {
             mapview.record.stop_record();
             gui.reset_tool_button_click();
             gui.release_click();
+            gui.release_selectionbox_click();
             gui.preference.release_click();
             gui.preference.scrollbar.release_scrollbar();
             if let Some(dialog) = &mut gui.dialog {
@@ -412,6 +427,9 @@ async fn main() -> Result<(), AscendingError> {
             }
             gui.tileset_list.scrollbar.release_scrollbar();
             gui.scrollbar.release_scrollbar();
+            if gui.current_setting_tab == TAB_PROPERTIES && gui.selected_dropbox >= 0 {
+                gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.release_scrollbar();
+            }
             did_key_press[action_index(Action::Select)] = false;
         }
 
@@ -501,6 +519,34 @@ async fn main() -> Result<(), AscendingError> {
                     graphics.text_renderer
                         .text_update(&mut button.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
                         .unwrap();
+                });
+
+                // Settings
+                gui.editor_label.iter_mut().for_each(|text| {
+                    graphics.text_renderer
+                                    .text_update(text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                    .unwrap();
+                });
+                gui.editor_selectionbox.iter_mut().for_each(|selection_box| {
+                    graphics.ui_renderer.rect_update(&mut selection_box.rect[0], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                    if selection_box.is_list_visible {
+                        graphics.ui_renderer.rect_update(&mut selection_box.rect[1], &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                        selection_box.list_text.iter_mut().for_each(|list_text| {
+                            graphics.ui_renderer.rect_update(&mut list_text.rect, &mut draw_setting.renderer, &mut graphics.ui_atlas, 0);
+                            graphics.text_renderer
+                                        .text_update(&mut list_text.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                        .unwrap();
+                        });
+                        if selection_box.scrollbar.visible {
+                            selection_box.scrollbar.images.iter_mut().for_each(|image| {
+                                graphics.image_renderer.image_update(image, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
+                            });
+                        }
+                    }
+                    graphics.image_renderer.image_update(&mut selection_box.button, &mut draw_setting.renderer, &mut graphics.image_atlas, 0);
+                    graphics.text_renderer
+                                    .text_update(&mut selection_box.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 1)
+                                    .unwrap();
                 });
             },
             TAB_ZONE => {
@@ -611,7 +657,31 @@ async fn main() -> Result<(), AscendingError> {
                                 graphics.text_renderer
                                     .text_update(&mut checkbox.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
                                     .unwrap();
-                            }
+                            },
+                            SettingData::ColorSelection(colorselection) => {
+                                graphics.ui_renderer.rect_update(&mut colorselection.image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+                                graphics.text_renderer
+                                    .text_update(&mut colorselection.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                                    .unwrap();
+                                if colorselection.color_editor.is_open {
+                                    graphics.ui_renderer.rect_update(&mut colorselection.color_editor.window, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+                                    colorselection.color_editor.label.iter_mut().for_each(|label| {
+                                        graphics.text_renderer
+                                            .text_update(label, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                                            .unwrap();
+                                    });
+                                    colorselection.color_editor.textbox.iter_mut().for_each(|textbox| {
+                                        graphics.ui_renderer.rect_update(&mut textbox.image, &mut draw_setting.renderer, &mut graphics.ui_atlas, 2);
+                                        graphics.text_renderer
+                                                    .text_update(&mut textbox.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                                                    .unwrap();
+                                    });
+                                    graphics.image_renderer.image_update(&mut colorselection.color_editor.button.image, &mut draw_setting.renderer, &mut graphics.image_atlas, 2);
+                                    graphics.text_renderer
+                                        .text_update(&mut colorselection.color_editor.button.text, &mut graphics.text_atlas, &mut draw_setting.renderer, 3)
+                                        .unwrap();
+                                }
+                            },
                             _ => {},
                         }
                     })

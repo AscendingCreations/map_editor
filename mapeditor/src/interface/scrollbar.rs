@@ -38,7 +38,6 @@ impl Scrollbar {
         image.pos = Vec3::new(pos.x, pos.y, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 0.0, 10.0, 4.0);
-        image.color = Color::rgba(255, 255, 255, 255);
         images.push(image);
 
         // Center of Scrollbar
@@ -46,7 +45,6 @@ impl Scrollbar {
         image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32, pos.z);
         image.hw = Vec2::new(10.0, scrollbar_size as f32);
         image.uv = Vec4::new(0.0, 5.0, 10.0, 6.0);
-        image.color = Color::rgba(255, 255, 255, 255);
         images.push(image);
 
         // Bottom Corner of Scrollbar
@@ -54,7 +52,6 @@ impl Scrollbar {
         image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32 - 4.0, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 12.0, 10.0, 4.0);
-        image.color = Color::rgba(255, 255, 255, 255);
         images.push(image);
 
         let start_pos = pos.y as usize;
@@ -182,6 +179,9 @@ impl Scrollbar {
 
     pub fn show(&mut self) {
         self.visible = true;
+        self.images.iter_mut().for_each(|image| {
+            image.changed = true;
+        });
     }
 
     pub fn hide(&mut self) {

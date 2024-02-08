@@ -263,7 +263,7 @@ pub fn handle_input(
                                 0 => {
                                     gui.preference.config_data = match load_config() {
                                         Ok(data) => data,
-                                        Err(_) => KeybindData::default(),
+                                        Err(_) => ConfigData::default(),
                                     };
                                     gui.preference.close()
                                 }, // Cancel
@@ -272,6 +272,19 @@ pub fn handle_input(
                                 }, // Reset
                                 _ => {
                                     gui.preference.config_data.save_config().unwrap();
+                                    // Apply settings
+                                    mapview.selection_preview.set_color(Color::rgba(
+                                        gui.preference.config_data.map_selection_color[0],
+                                        gui.preference.config_data.map_selection_color[1],
+                                        gui.preference.config_data.map_selection_color[2],
+                                        150,
+                                    ));
+                                    tileset.selection.set_color(Color::rgba(
+                                        gui.preference.config_data.tile_selection_color[0],
+                                        gui.preference.config_data.tile_selection_color[1],
+                                        gui.preference.config_data.tile_selection_color[2],
+                                        150,
+                                    ));
                                     gui.preference.close()
                                 }, // Save
                             }
@@ -281,8 +294,58 @@ pub fn handle_input(
                             open_preference_tab(&mut gui.preference, draw_setting);
                         }
 
-                        if let Some(key_index) = gui.preference.select_keylist(screen_pos) {
-                            gui.preference.keywindow.open_key(draw_setting, key_index);
+                        match gui.preference.selected_menu {
+                            PREF_TAB_GENERAL => {
+                                if gui.preference.in_color_selection(screen_pos) {
+                                    gui.preference.select_text(screen_pos);
+                                    if gui.preference.click_color_selection_button(screen_pos) {
+                                        if let Some(index) = gui.preference.is_coloreditor_open {
+                                            if let SettingData::ColorSelection(colorselection) = &mut gui.preference.setting_data[index] {
+                                                let data = colorselection.color_editor.data.clone();
+                                                colorselection.image.set_color(Color::rgba(data[0], data[1], data[2], data[3]));
+                                                match index {
+                                                    1 => gui.preference.config_data.map_selection_color = data,
+                                                    2 => gui.preference.config_data.tile_selection_color = data,
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
+                                        gui.preference.hide_color_selection();
+                                    }
+                                } else {
+                                    if let Some(config_index) = gui.preference.select_config(screen_pos) {
+                                        match &mut gui.preference.setting_data[config_index] {
+                                            SettingData::Checkbox(checkbox) => {
+                                                if checkbox.is_select {
+                                                    checkbox.set_select(false);
+                                                } else {
+                                                    checkbox.set_select(true);
+                                                }
+                                                // Hide color selection if it is visible
+                                                gui.preference.hide_color_selection();
+                                            },
+                                            SettingData::ColorSelection(colorselection) => {
+                                                if gui.preference.is_coloreditor_open.is_none() {
+                                                    colorselection.open_color_editor();
+                                                    gui.preference.is_coloreditor_open = Some(config_index);
+                                                } else {
+                                                    // Hide color selection if it is visible
+                                                    gui.preference.hide_color_selection();
+                                                }
+                                            },
+                                            _ => {},
+                                        }
+                                    } else {
+                                        gui.preference.hide_color_selection();
+                                    }
+                                }
+                            },
+                            PREF_TAB_KEYBIND => {
+                                if let Some(key_index) = gui.preference.select_keylist(screen_pos) {
+                                    gui.preference.keywindow.open_key(draw_setting, key_index);
+                                }
+                            },
+                            _ => {},
                         }
                     }
                 } else {
@@ -325,12 +388,15 @@ pub fn handle_input(
         InputType::MouseLeftDown => {
             if gui.tileset_list.scrollbar.in_scrollbar(screen_pos) {
                 gui.tileset_list.scrollbar.hold_scrollbar(screen_pos.y);
-            }
-            if gui.scrollbar.in_scrollbar(screen_pos) && !gui.tileset_list.scrollbar.in_hold {
+            } else if gui.scrollbar.in_scrollbar(screen_pos) {
                 gui.scrollbar.hold_scrollbar(screen_pos.y);
+            } else if gui.current_setting_tab == TAB_PROPERTIES && gui.selected_dropbox >= 0 {
+                if gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.in_scrollbar(screen_pos) {
+                    gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.hold_scrollbar(screen_pos.y);
+                }
             }
 
-            if !gui.tileset_list.scrollbar.in_hold && !gui.scrollbar.in_hold {
+            if !is_scrollbar_in_hold(gui) {
                 // Check if mouse position is pointing to our tileset
                 if in_tileset(screen_pos, tileset) && gui.current_setting_tab == TAB_LAYER {
                     // Calculate the tile position on the tileset based on mouse position
@@ -378,6 +444,16 @@ pub fn handle_input(
                     editor_data.load_map_data(&mut draw_setting.renderer, mapview);
                     editor_data.load_link_maps(mapview);
                     update_map_name(draw_setting, gui, editor_data);
+
+                    match gui.current_setting_tab {
+                        TAB_ZONE => {
+                            mapview.update_map_zone(gui.current_tab_data as usize);
+                        },
+                        TAB_PROPERTIES => {
+                            gui.editor_selectionbox[0].switch_list(&mut draw_setting.renderer, mapview.fixed_weather as usize);
+                        },
+                        _ => {},
+                    }
                 }
 
                 // Tools
@@ -391,7 +467,7 @@ pub fn handle_input(
                                 }
                                 gui.preference.config_data = match load_config() {
                                     Ok(data) => data,
-                                    Err(_) => KeybindData::default(),
+                                    Err(_) => ConfigData::default(),
                                 };
                                 gui.preference.close();
                             }
@@ -469,6 +545,44 @@ pub fn handle_input(
                                 _ => {},
                             }
                         }
+
+                        // Selection box
+                        let click_button = gui.click_selectionbox(screen_pos);
+                        if let Some(selection_index) = click_button {
+                            match selection_index {
+                                0 => {
+                                    if !gui.editor_selectionbox[selection_index].is_list_visible {
+                                        gui.editor_selectionbox[selection_index].show_list(&mut draw_setting.renderer);
+                                        gui.selected_dropbox = selection_index as i32;
+                                    } else {
+                                        gui.editor_selectionbox[selection_index].hide_list();
+                                        gui.selected_dropbox = -1;
+                                    }
+                                }, // Weather
+                                _ => {},
+                            }
+                        }
+
+                        // Dropdown List
+                        if gui.selected_dropbox >= 0 {
+                            let click_button = gui.editor_selectionbox[gui.selected_dropbox as usize].click_list(screen_pos);
+                            if let Some(selection_index) = click_button {
+                                gui.editor_selectionbox[gui.selected_dropbox as usize].switch_list(&mut draw_setting.renderer, selection_index);
+
+                                match gui.selected_dropbox {
+                                    0 => {
+                                        mapview.fixed_weather = gui.editor_selectionbox[gui.selected_dropbox as usize].selected_index as u8;
+                                        if editor_data.set_map_change() {
+                                            update_map_name(draw_setting, gui, editor_data);
+                                        };
+                                        mapview.record.clear_redo();
+                                    }
+                                    _ => {},
+                                }
+
+                                gui.editor_selectionbox[gui.selected_dropbox as usize].hide_list();
+                            }
+                        }
                     },
                     _ => {},
                 }
@@ -488,7 +602,7 @@ pub fn handle_input(
             }
         }
         InputType::MouseLeftDownMove => {
-            if !gui.tileset_list.scrollbar.in_hold && !gui.scrollbar.in_hold {
+            if !is_scrollbar_in_hold(gui) {
                 // Check if mouse position is pointing to our tileset
                 if in_tileset(screen_pos, tileset)
                     && gameinput.presstype == PressType::PressTileset
@@ -546,6 +660,13 @@ pub fn handle_input(
                 gui.scrollbar.move_scrollbar(screen_pos.y, false);
                 gui.update_scroll(&mut draw_setting.renderer, gui.scrollbar.cur_value);
                 gui.scrollbar.set_hover(screen_pos);
+            } else if gui.current_setting_tab == TAB_PROPERTIES && gui.selected_dropbox >= 0 {
+                if gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.in_hold {
+                    gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.move_scrollbar(screen_pos.y, false);
+                    let scrollbar_value = gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.cur_value;
+                    gui.editor_selectionbox[gui.selected_dropbox as usize].update_list(&mut draw_setting.renderer, scrollbar_value);
+                    gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.set_hover(screen_pos);
+                }
             }
         }
         InputType::MouseMove => {
@@ -563,6 +684,7 @@ pub fn handle_input(
             // Buttons
             gui.hover_tool_button(screen_pos);
             gui.hover_buttons(screen_pos);
+            gui.hover_selectionbox(screen_pos);
             // Tab Options
             gui.hover_tab_option(screen_pos);
             // Tileset List Selection
@@ -570,6 +692,10 @@ pub fn handle_input(
             // Scrollbar
             gui.tileset_list.scrollbar.set_hover(screen_pos);
             gui.scrollbar.set_hover(screen_pos);
+            if gui.current_setting_tab == TAB_PROPERTIES && gui.selected_dropbox >= 0 {
+                gui.editor_selectionbox[gui.selected_dropbox as usize].hover_list(screen_pos);
+                gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.set_hover(screen_pos);
+            }
         }
     }
 }
@@ -580,8 +706,30 @@ pub fn handle_key_input(
     gui: &mut Interface,
     mapview: &mut MapView,
 ) -> bool {
-    if gui.preference.keywindow.is_open {
-        gui.preference.keywindow.edit_key(event, renderer);
+    if gui.preference.is_open {
+        match gui.preference.selected_menu {
+            PREF_TAB_KEYBIND => {
+                if gui.preference.keywindow.is_open {
+                    gui.preference.keywindow.edit_key(event, renderer);
+                }
+            },
+            PREF_TAB_GENERAL => {
+                if event.state.is_pressed() {
+                    if let Some(index) = gui.preference.is_coloreditor_open {
+                        if let SettingData::ColorSelection(colorselection) = &mut gui.preference.setting_data[index] {
+                            if colorselection.color_editor.is_open {
+                                colorselection.color_editor.textbox[gui.preference.editing_index]
+                                    .enter_numeric(renderer, event, 3, false);
+
+                                let value = colorselection.color_editor.textbox[gui.preference.editing_index as usize].data.parse::<i64>().unwrap_or_default();
+                                colorselection.color_editor.data[gui.preference.editing_index] = (value as u8).min(255);
+                            }
+                        }
+                    }
+                }
+            },
+            _ => {},
+        }
         return true;
     }
 
@@ -606,18 +754,18 @@ pub fn handle_key_input(
                 let attribute = MapAttribute::convert_to_plain_enum(gui.current_tab_data + 1);
                 match attribute {
                     MapAttribute::Warp(_, _, _, _, _) => {
-                        if gui.editor_selected_box >= 0 {
-                            if gui.editor_selected_box < 2 {
-                                gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, true);
+                        if gui.selected_textbox >= 0 {
+                            if gui.selected_textbox < 2 {
+                                gui.editor_textbox[gui.selected_textbox as usize].enter_numeric(renderer, event, 5, true);
                             } else {
-                                gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, false);
+                                gui.editor_textbox[gui.selected_textbox as usize].enter_numeric(renderer, event, 5, false);
                             }
                             result = true;
                         }
                     },
                     MapAttribute::Sign(_) => {
-                        if gui.editor_selected_box >= 0 {
-                            gui.editor_textbox[gui.editor_selected_box as usize].enter_text(renderer, event, 100);
+                        if gui.selected_textbox >= 0 {
+                            gui.editor_textbox[gui.selected_textbox as usize].enter_text(renderer, event, 100);
                             result = true;
                         }
                     },
@@ -625,22 +773,22 @@ pub fn handle_key_input(
                 }
             },
             TAB_ZONE => {
-                if gui.editor_selected_box >= 0 {
-                    gui.editor_textbox[gui.editor_selected_box as usize].enter_numeric(renderer, event, 5, false);
-                    match gui.editor_selected_box {
+                if gui.selected_textbox >= 0 {
+                    gui.editor_textbox[gui.selected_textbox as usize].enter_numeric(renderer, event, 5, false);
+                    match gui.selected_textbox {
                         0 => {
-                            let value = gui.editor_textbox[gui.editor_selected_box as usize].data.parse::<i64>().unwrap_or_default();
+                            let value = gui.editor_textbox[gui.selected_textbox as usize].data.parse::<i64>().unwrap_or_default();
                             mapview.map_zone_setting[gui.current_tab_data as usize]
                                     .max_npc = value as u64
                         }, // Max NPC
                         _ => {
-                            if gui.editor_textbox[gui.editor_selected_box as usize].data.len() > 0 {
-                                let value = gui.editor_textbox[gui.editor_selected_box as usize].data.parse::<i64>().unwrap_or_default();
+                            if gui.editor_textbox[gui.selected_textbox as usize].data.len() > 0 {
+                                let value = gui.editor_textbox[gui.selected_textbox as usize].data.parse::<i64>().unwrap_or_default();
                                 mapview.map_zone_setting[gui.current_tab_data as usize]
-                                        .npc_id[(gui.editor_selected_box - 1) as usize] = Some(value as u64);
+                                        .npc_id[(gui.selected_textbox - 1) as usize] = Some(value as u64);
                             } else {
                                 mapview.map_zone_setting[gui.current_tab_data as usize]
-                                        .npc_id[(gui.editor_selected_box - 1) as usize] = None;
+                                        .npc_id[(gui.selected_textbox - 1) as usize] = None;
                             }
                         }, // Npc ID
                     }
@@ -651,6 +799,19 @@ pub fn handle_key_input(
         }
     }
     result
+}
+
+pub fn is_scrollbar_in_hold(gui: &mut Interface) -> bool {
+    if gui.tileset_list.scrollbar.in_hold {
+        return true;
+    } else if gui.scrollbar.in_hold {
+        return true;
+    } else if gui.current_setting_tab == TAB_PROPERTIES && gui.selected_dropbox >= 0{
+        if gui.editor_selectionbox[gui.selected_dropbox as usize].scrollbar.in_hold {
+            return true;
+        }
+    }
+    false
 }
 
 pub fn set_key_modifier_value(game_input: &mut GameInput, modifier_index: usize, is_pressed: bool) {
@@ -714,7 +875,7 @@ pub fn handle_shortcut(event: &KeyEvent,
                         }
                         gui.preference.config_data = match load_config() {
                             Ok(data) => data,
-                            Err(_) => KeybindData::default(),
+                            Err(_) => ConfigData::default(),
                         };
                         gui.preference.close();
                     }

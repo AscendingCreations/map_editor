@@ -58,6 +58,7 @@ pub struct MapView {
     pub map_zone: Vec<Rect>,
     pub map_zone_loc: [MapZone; 5],
     pub map_zone_setting: [MapZoneSetting; 5],
+    pub fixed_weather: u8,
 
     // Recording
     pub record: Records,
@@ -176,6 +177,7 @@ impl MapView {
             map_zone_loc: Default::default(),
             map_zone_setting: Default::default(),
             record: Records::new(),
+            fixed_weather: 0,
         }
     }
 

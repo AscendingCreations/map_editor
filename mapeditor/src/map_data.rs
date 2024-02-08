@@ -144,6 +144,8 @@ impl EditorData {
                     mapdata.zones[i].1[npc_index] = mapview.map_zone_setting[i].npc_id[npc_index];
                 }
             }
+            println!("Map Data Save {:?}", mapdata.fixed_weather);
+            mapdata.fixed_weather = mapview.fixed_weather;
             if should_save {
                 mapdata.save_file().unwrap();
                 // Since we have saved the map, let's mark the map as 'no change'
@@ -196,6 +198,7 @@ impl EditorData {
                     map.map_zone_setting[i].npc_id[npc_index] = mapdata.zones[i].1[npc_index];
                 }
             }
+            map.fixed_weather = mapdata.fixed_weather;
         }
     }
 
@@ -318,6 +321,7 @@ pub struct MapData {
     pub attribute: Vec<MapAttribute>,
     pub zonespawns: [Vec<(u16, u16)>; 5],
     pub zones: [(u64, [Option<u64>; 5]); 5],
+    pub fixed_weather: u8,
 }
 
 impl MapData {
@@ -330,6 +334,7 @@ impl MapData {
             attribute: vec![MapAttribute::Walkable; 1024],
             zonespawns: Default::default(),
             zones: Default::default(),
+            fixed_weather: 0,
         }
     }
 

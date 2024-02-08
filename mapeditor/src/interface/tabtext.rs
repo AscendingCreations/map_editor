@@ -3,7 +3,7 @@ use cosmic_text::{Attrs, Metrics};
 
 use crate::{
     DrawSetting,
-    interface::create_label,
+    interface::label::*,
     gfx_order::*,
 };
 
@@ -23,9 +23,8 @@ impl TabText {
         button.pos = Vec3::new(pos.x, pos.y, ORDER_TAB_BUTTON);
         button.hw = Vec2::new(194.0, 20.0);
         button.uv = Vec4::new(0.0, 0.0, 194.0, 20.0);
-        button.color = Color::rgba(255, 255, 255, 255);
 
-        let text = create_label(draw_setting,
+        let text = create_basic_label(draw_setting,
             Vec3::new(pos.x + 24.0, pos.y - 1.0, ORDER_TAB_LABEL),
             Vec2::new(165.0, 20.0),
             Color::rgba(120, 120, 120, 255));

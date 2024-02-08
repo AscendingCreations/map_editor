@@ -2,6 +2,9 @@ pub mod dialog;
 pub mod textbox;
 pub mod preference;
 pub mod checkbox;
+pub mod color_selection;
+pub mod label;
+pub mod selection_box;
 mod tabtext;
 mod tileset_list;
 mod scrollbar;
@@ -16,6 +19,9 @@ pub use dialog::*;
 pub use textbox::*;
 pub use preference::*;
 pub use checkbox::*;
+pub use color_selection::*;
+pub use label::*;
+pub use selection_box::*;
 use tabtext::*;
 use tileset_list::*;
 use scrollbar::*;
@@ -63,6 +69,7 @@ pub struct Interface {
     pub current_setting_tab: usize,
     reset_tool_button: bool,
     reset_button: bool,
+    reset_selectionbox: bool,
     pub dialog: Option<Dialog>,
     pub preference: Preference,
     // Tab Contents
@@ -76,7 +83,9 @@ pub struct Interface {
     pub editor_label: Vec<Text>,
     pub editor_textbox: Vec<Textbox>,
     pub editor_button: Vec<Button>,
-    pub editor_selected_box: i32,
+    pub editor_selectionbox: Vec<SelectionBox>,
+    pub selected_textbox: i32,
+    pub selected_dropbox: i32,
 }
 
 impl Interface {
@@ -86,27 +95,26 @@ impl Interface {
         bg_layout.pos = Vec3::new(0.0, 0.0, ORDER_BG);
         bg_layout.hw = Vec2::new(949.0, 802.0);
         bg_layout.uv = Vec4::new(0.0, 0.0, 949.0, 802.0);
-        bg_layout.color = Color::rgba(255, 255, 255, 255);
 
         // This prepare most labels on the interface
         let mut labels = vec![
-            create_label(draw_setting,
+            create_basic_label(draw_setting,
                 Vec3::new(870.0, 767.0, ORDER_BG_LABEL), 
                 Vec2::new(100.0, 16.0),
                 Color::rgba(180, 180, 180, 255)), // FPS
-            create_label(draw_setting,
+            create_basic_label(draw_setting,
                 Vec3::new(37.0, 770.0, ORDER_BG_LABEL),
                 Vec2::new(152.0, 20.0),
                 Color::rgba(0, 0, 0, 255)), // Tileset Label
-            create_label(draw_setting,
+            create_basic_label(draw_setting,
                 Vec3::new(221.0, 13.0, ORDER_BG_LABEL), 
                 Vec2::new(600.0, 20.0),
                 Color::rgba(180, 180, 180, 255)), // Map Name
-            create_label(draw_setting,
+            create_basic_label(draw_setting,
                 Vec3::new(810.0, 13.0, ORDER_BG_LABEL), 
                 Vec2::new(130.0, 20.0),
                 Color::rgba(180, 180, 180, 255)), // Tile Pos
-            create_label(draw_setting,
+            create_basic_label(draw_setting,
                 Vec3::new(11.0, 768.0, ORDER_BG_LABEL),
                 Vec2::new(202.0, 20.0),
                 Color::rgba(180, 180, 180, 255)), // Opt Header Text
@@ -212,6 +220,7 @@ impl Interface {
             current_setting_tab: TAB_LAYER,
             reset_tool_button: false,
             reset_button: false,
+            reset_selectionbox: false,
             tab_labels,
             current_tab_data: 0,
             tileset_list,
@@ -225,7 +234,9 @@ impl Interface {
             editor_label: Vec::new(),
             editor_textbox: Vec::new(),
             editor_button: Vec::new(),
-            editor_selected_box: -1,
+            editor_selectionbox: Vec::new(),
+            selected_textbox: -1,
+            selected_dropbox: -1,
         }
     }
 
@@ -260,9 +271,10 @@ impl Interface {
     // This function should be called when the mouse button is not being pressed
     // This check if a tool has been clicked, if yes, it will reset their click status
     pub fn reset_tool_button_click(&mut self) {
-        if self.reset_tool_button {
-            self.buttons.iter_mut().for_each(|button| button.set_click(false));
+        if !self.reset_tool_button {
+            return;
         }
+        self.buttons.iter_mut().for_each(|button| button.set_click(false));
     }
 
     // This function help us switch the current tool that the editor is using
@@ -318,6 +330,50 @@ impl Interface {
         found_button
     }
 
+    pub fn hover_selectionbox(&mut self, mouse_pos: Vec2) {
+        // We check if buttons are within the mouse position
+        self.editor_selectionbox.iter_mut().for_each(|selection_box| {
+            if (mouse_pos.x) >= selection_box.rect[0].position.x
+                && (mouse_pos.x) <= selection_box.rect[0].position.x + selection_box.rect[0].size.x + 21.0
+                && (mouse_pos.y) >= selection_box.rect[0].position.y
+                && (mouse_pos.y) <= selection_box.rect[0].position.y + selection_box.rect[0].size.y {
+                selection_box.set_hover(true);
+            } else {
+                selection_box.set_hover(false);
+            }
+        });
+    }
+
+    // This function should be called when the mouse button is not being pressed
+    // This check if a button has been clicked, if yes, it will reset their click status
+    pub fn release_selectionbox_click(&mut self) {
+        if !self.reset_selectionbox {
+            return;
+        }
+        
+        self.editor_selectionbox.iter_mut().for_each(|selection_box| {
+            selection_box.set_click(false);
+        });
+    }
+
+    // This function check which buttons are within the click position and return the button index
+    pub fn click_selectionbox(&mut self, mouse_pos: Vec2) -> Option<usize> {
+        let mut found_button = None;
+        for (index, selection_box) in self.editor_selectionbox.iter().enumerate() {
+            if (mouse_pos.x) >= selection_box.rect[0].position.x
+                && (mouse_pos.x) <= selection_box.rect[0].position.x + selection_box.rect[0].size.x + 21.0
+                && (mouse_pos.y) >= selection_box.rect[0].position.y
+                && (mouse_pos.y) <= selection_box.rect[0].position.y + selection_box.rect[0].size.y {
+                found_button = Some(index);
+            }
+        }
+        if let Some(index) = found_button {
+            self.editor_selectionbox[index].set_click(true);
+            self.reset_selectionbox = true; // This remind us that a button has been clicked and needed to be reset
+        }
+        found_button
+    }
+
     // This function help us switch the map setting tab that the editor is using
     pub fn set_tab(&mut self, draw_setting: &mut DrawSetting, tab_index: usize, mapview: &mut MapView, tileset: &mut Tileset, gameinput: &mut GameInput) {
         if self.current_setting_tab != tab_index {
@@ -329,6 +385,7 @@ impl Interface {
             self.editor_label = vec![];
             self.editor_textbox = vec![];
             self.editor_button = vec![];
+            self.editor_selectionbox = vec![];
             self.scrollbar.hide();
             self.current_tab_data = 0;
             self.current_selected_area = 0;
@@ -422,7 +479,7 @@ impl Interface {
                                 msg = "Max NPC".to_string();
                             },
                         }
-                        let mut text = create_label(draw_setting, 
+                        let mut text = create_basic_label(draw_setting, 
                             Vec3::new(ajdust_pos.x, ajdust_pos.y, ORDER_ATTRIBUTE_LABEL),
                             Vec2::new(100.0, 20.0),
                             Color::rgba(180, 180, 180, 255));
@@ -460,7 +517,32 @@ impl Interface {
                         Button::new(draw_setting, draw_setting.resource.option_button.allocation, "Preference",
                                 Vec2::new(self.tab_opt_bg[0].position.x + 14.0, self.tab_opt_bg[0].position.y + 292.0), Vec2::new(172.0, 36.0),
                                 [ORDER_OPTION_BUTTON, ORDER_OPTION_BUTTON_TEXT], 8.0),
-                    ]
+                    ];
+
+                    let content_pos = Vec2::new(25.0, 295.0);
+                    let mut text = create_basic_label(draw_setting, 
+                        Vec3::new(content_pos.x, content_pos.y, ORDER_ATTRIBUTE_LABEL),
+                        Vec2::new(100.0, 20.0),
+                        Color::rgba(180, 180, 180, 255));
+                    text.set_text(&mut draw_setting.renderer, "Weather", Attrs::new());
+                    self.editor_label.push(text);
+
+                    let mut selectionbox = SelectionBox::new(draw_setting, 
+                        Vec2::new(content_pos.x, content_pos.y - 24.0), 
+                        [ORDER_PROPERTIES_BUTTON, 
+                                    ORDER_PROPERTIES_BUTTON_TEXT,
+                                    ORDER_DROPDOWN_WINDOW,
+                                    ORDER_DROPDOWN_SELECTION,
+                                    ORDER_DROPDOWN_TEXT,
+                                    ORDER_DROPDOWN_SCROLLBAR], 
+                        168.0,
+                        vec![
+                            "None".to_string(),
+                            "Rain".to_string(),
+                            "Snow".to_string(),
+                        ]);
+                    selectionbox.switch_list(&mut draw_setting.renderer, mapview.fixed_weather as usize);
+                    self.editor_selectionbox.push(selectionbox);
                 },
                 _ => {},
             }
@@ -578,7 +660,8 @@ impl Interface {
     {
         let attr = MapAttribute::convert_to_plain_enum(attribute);
         // We will make it default that no textbox is selected
-        self.editor_selected_box = -1;
+        self.selected_textbox = -1;
+        self.selected_dropbox = -1;
         match attr {
             MapAttribute::Warp(_, _, _, _, _) => {
                 self.editor_label = Vec::with_capacity(7);
@@ -615,7 +698,7 @@ impl Interface {
                             msg = "Map Location";
                         },
                     }
-                    let mut text = create_label(draw_setting, 
+                    let mut text = create_basic_label(draw_setting, 
                         Vec3::new(ajdust_pos.x, ajdust_pos.y, ORDER_ATTRIBUTE_LABEL),
                         Vec2::new(100.0, 20.0),
                         Color::rgba(180, 180, 180, 255));
@@ -662,7 +745,7 @@ impl Interface {
             },
             MapAttribute::Sign(_data_string) => {
                 self.editor_label = vec![
-                                        create_label(draw_setting, 
+                                        create_basic_label(draw_setting, 
                                             Vec3::new(self.tab_opt_bg[0].position.x + 10.0,
                                                         self.tab_opt_bg[0].position.y + 368.0, ORDER_ATTRIBUTE_LABEL),
                                             Vec2::new(100.0, 20.0),
@@ -710,20 +793,20 @@ impl Interface {
                 && (mouse_pos.y) >= textbox.image.position.y
                 && (mouse_pos.y) <= textbox.image.position.y + textbox.image.size.y
         }) {
-            if self.editor_selected_box as usize == index {
+            if self.selected_textbox as usize == index {
                 return;
             }
 
-            if let Some(selected_textbox) = self.editor_textbox.get_mut(self.editor_selected_box as usize) {
+            if let Some(selected_textbox) = self.editor_textbox.get_mut(self.selected_textbox as usize) {
                 selected_textbox.set_select(false);
             }
             self.editor_textbox[index].set_select(true);
-            self.editor_selected_box = index as i32;
+            self.selected_textbox = index as i32;
         } else {
-            if let Some(selected_textbox) = self.editor_textbox.get_mut(self.editor_selected_box as usize) {
+            if let Some(selected_textbox) = self.editor_textbox.get_mut(self.selected_textbox as usize) {
                 selected_textbox.set_select(false);
             }
-            self.editor_selected_box = -1;
+            self.selected_textbox = -1;
         }
     }
 
@@ -767,14 +850,6 @@ impl Interface {
     }
 }
 
-fn center_text(text: &mut Text) {
-    let size = text.measure();
-    let bound = text.bounds.unwrap_or_default();
-    let textbox_size = bound.right - bound.left;
-    text.pos.x = bound.left + ((textbox_size * 0.5) - (size.x * 0.5));
-    text.changed = true;
-}
-
 // Function to create a tool button
 fn create_tool_button(resource: usize, renderer: &mut GpuRenderer, index: usize, pos: Vec3, hw: Vec2, uv: Vec4) -> ToolButton {
     let mut tool = ToolButton {
@@ -787,24 +862,5 @@ fn create_tool_button(resource: usize, renderer: &mut GpuRenderer, index: usize,
     tool.image.pos = pos;
     tool.image.hw = hw;
     tool.image.uv = uv;
-    tool.image.color = Color::rgba(255, 255, 255, 255);
     tool
-}
-
-fn create_label(draw_setting: &mut DrawSetting,
-                pos: Vec3,
-                label_size: Vec2,
-                color: Color,
-) -> Text {
-    let mut text = Text::new(
-        &mut draw_setting.renderer,
-        Some(Metrics::new(16.0, 16.0).scale(draw_setting.scale as f32)),
-        Vec3::new(pos.x, pos.y, pos.z), label_size, 1.0
-    );
-    text.set_buffer_size(&mut draw_setting.renderer, draw_setting.size.width as i32, draw_setting.size.height as i32)
-        .set_bounds(Some(Bounds::new(pos.x, pos.y, pos.x + label_size.x, pos.y + label_size.y)))
-        .set_default_color(color);
-    text.use_camera = true;
-    text.changed = true;
-    text
 }

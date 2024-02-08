@@ -58,7 +58,7 @@ impl Tileset {
                                                 tilesheet.map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32,
                                                 ORDER_TILESET_SELECTION))
                             .set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
-                            .set_color(Color::rgba(80, 0, 0, 130))
+                            .set_color(Color::rgba(80, 0, 0, 150))
                             .set_use_camera(true);
 
         tilesheet

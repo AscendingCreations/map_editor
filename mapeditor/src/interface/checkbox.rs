@@ -3,6 +3,7 @@ use cosmic_text::{Attrs, Metrics};
 
 use crate::{
     gfx_order::*,
+    interface::label::*,
     DrawSetting,
 };
 
@@ -10,6 +11,7 @@ pub struct Checkbox {
     pub window: Vec<Rect>,
     pub text: Text,
     is_hover: bool,
+    pub is_select: bool,
 }
 
 impl Checkbox {
@@ -43,6 +45,7 @@ impl Checkbox {
             window,
             text,
             is_hover: false,
+            is_select: false,
         }
     }
     
@@ -60,23 +63,20 @@ impl Checkbox {
             self.text.set_default_color(Color::rgba(180, 180, 180, 255));
         }
     }
-}
 
-fn create_label(draw_setting: &mut DrawSetting,
-    pos: Vec3,
-    label_size: Vec2,
-    bounds: Bounds,
-    color: Color,
-) -> Text {
-    let mut text = Text::new(
-        &mut draw_setting.renderer,
-        Some(Metrics::new(16.0, 16.0).scale(draw_setting.scale as f32)),
-        Vec3::new(pos.x, pos.y, pos.z), label_size, 1.0
-    );
-    text.set_buffer_size(&mut draw_setting.renderer, draw_setting.size.width as i32, draw_setting.size.height as i32)
-            .set_bounds(Some(bounds))
-            .set_default_color(color);
-    text.use_camera = true;
-    text.changed = true;
-    text
+    pub fn set_select(&mut self, is_select: bool) {
+        if self.is_select == is_select {
+            return;
+        }
+
+        self.is_select = is_select;
+        if self.is_select {
+            self.window[1].set_color(Color::rgba(200, 200, 200, 255))
+                        .set_border_width(2.0)
+                        .set_border_color(Color::rgba(100, 100, 100, 255));
+        } else {
+            self.window[1].set_color(Color::rgba(100, 100, 100, 255))
+                        .set_border_width(0.0);
+        }
+    }
 }

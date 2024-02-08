@@ -5,7 +5,7 @@ use graphics::*;
 use crate::{
     resource::*,
     interface::{
-        create_label,
+        label::*,
         scrollbar::*,
     },
     gfx_order::*,
@@ -89,11 +89,10 @@ impl TilesetList {
             button.image.pos = Vec3::new(bg[0].position.x + 3.0, bg[0].position.y + 369.0 - (21.0 * index as f32), ORDER_TILESETLIST_BUTTON);
             button.image.hw = Vec2::new(183.0, 20.0);
             button.image.uv = Vec4::new(0.0, 0.0, 183.0, 20.0);
-            button.image.color = Color::rgba(255, 255, 255, 255);
             selection_buttons.push(button);
 
             // Create the text
-            let mut text = create_label(draw_setting,
+            let mut text = create_basic_label(draw_setting,
                         Vec3::new(bg[0].position.x + 7.0, bg[0].position.y + 369.0 - (21.0 * index as f32), ORDER_TILESETLIST_LABEL),
                         Vec2::new(100.0, 20.0),
                         Color::rgba(180, 180, 180, 255));

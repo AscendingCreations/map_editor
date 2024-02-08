@@ -9,6 +9,7 @@ use crate::{
     interface::{
         scrollbar::*,
         textbox::*,
+        label::*,
     },
     DrawSetting,
 };
@@ -54,7 +55,6 @@ impl DialogButton {
         image.pos = Vec3::new(pos.x, pos.y, ORDER_DIALOG_BUTTON);
         image.hw = Vec2::new(103.0, 36.0);
         image.uv = Vec4::new(0.0, 0.0, 103.0, 36.0);
-        image.color = Color::rgba(255, 255, 255, 255);
 
         let adjust_x = 51.0 - (text_size.x * 0.5).floor();
         let mut text = create_label(draw_setting,
@@ -445,23 +445,4 @@ impl Dialog {
         }
         false
     }
-}
-
-fn create_label(draw_setting: &mut DrawSetting,
-    pos: Vec3,
-    label_size: Vec2,
-    bounds: Bounds,
-    color: Color,
-) -> Text {
-    let mut text = Text::new(
-        &mut draw_setting.renderer,
-        Some(Metrics::new(16.0, 16.0).scale(draw_setting.scale as f32)),
-        Vec3::new(pos.x, pos.y, pos.z), label_size, 1.0
-    );
-    text.set_buffer_size(&mut draw_setting.renderer, draw_setting.size.width as i32, draw_setting.size.height as i32)
-            .set_bounds(Some(bounds))
-            .set_default_color(color);
-    text.use_camera = true;
-    text.changed = true;
-    text
 }
