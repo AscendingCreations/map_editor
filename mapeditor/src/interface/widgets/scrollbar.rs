@@ -27,28 +27,28 @@ pub struct Scrollbar {
 }
 
 impl Scrollbar {
-    pub fn new(draw_setting: &mut DrawSetting, pos: Vec3, max_value: usize, max_scroll_size: usize, min_bar_size: usize) -> Self {
+    pub fn new(systems: &mut DrawSetting, pos: Vec3, max_value: usize, max_scroll_size: usize, min_bar_size: usize) -> Self {
         let mut images = Vec::with_capacity(3);
 
         let mut scrollbar_size = (max_scroll_size / (max_value + 1)).floor();
         if scrollbar_size < min_bar_size { scrollbar_size = min_bar_size; }
 
         // Top Corner of Scrollbar
-        let mut image = Image::new(Some(draw_setting.resource.scrollbar.allocation), &mut draw_setting.renderer, 1);
+        let mut image = Image::new(Some(systems.resource.scrollbar.allocation), &mut systems.renderer, 1);
         image.pos = Vec3::new(pos.x, pos.y, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 0.0, 10.0, 4.0);
         images.push(image);
 
         // Center of Scrollbar
-        let mut image = Image::new(Some(draw_setting.resource.scrollbar.allocation), &mut draw_setting.renderer, 1);
+        let mut image = Image::new(Some(systems.resource.scrollbar.allocation), &mut systems.renderer, 1);
         image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32, pos.z);
         image.hw = Vec2::new(10.0, scrollbar_size as f32);
         image.uv = Vec4::new(0.0, 5.0, 10.0, 6.0);
         images.push(image);
 
         // Bottom Corner of Scrollbar
-        let mut image = Image::new(Some(draw_setting.resource.scrollbar.allocation), &mut draw_setting.renderer, 1);
+        let mut image = Image::new(Some(systems.resource.scrollbar.allocation), &mut systems.renderer, 1);
         image.pos = Vec3::new(pos.x, pos.y - scrollbar_size as f32 - 4.0, pos.z);
         image.hw = Vec2::new(10.0, 4.0);
         image.uv = Vec4::new(0.0, 12.0, 10.0, 4.0);

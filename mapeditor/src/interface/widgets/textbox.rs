@@ -1,14 +1,12 @@
-use std::thread::current;
 use cosmic_text::{Attrs, Metrics};
 use winit::{
-    dpi::PhysicalSize,
     event::*,
-    event_loop::{ControlFlow, EventLoop},
     keyboard::*,
-    window::{WindowBuilder, WindowButtons},
 };
+
 use graphics::*;
-use input::Key;
+
+use crate::DrawSetting;
 
 pub struct Textbox {
     pub image: Rect,
@@ -18,12 +16,12 @@ pub struct Textbox {
 }
 
 impl Textbox {
-    pub fn new(draw_setting: &mut DrawSetting, 
+    pub fn new(systems: &mut DrawSetting, 
                 textbox_pos: Vec3, 
                 textbox_size: Vec2,
                 can_wrap: bool) -> Self 
 {
-        let mut image = Rect::new(&mut draw_setting.renderer, 0);
+        let mut image = Rect::new(&mut systems.renderer, 0);
         image.set_size(textbox_size)
             .set_position(textbox_pos)
             .set_border_color(Color::rgba(80, 80, 80, 255))
@@ -32,17 +30,19 @@ impl Textbox {
             .set_use_camera(true);
         
         let mut text = Text::new(
-            &mut draw_setting.renderer,
-            Some(Metrics::new(16.0, 16.0).scale(draw_setting.scale as f32)),
+            &mut systems.renderer,
+            Some(Metrics::new(16.0, 16.0).scale(systems.scale as f32)),
             Vec3::new(textbox_pos.x + 2.0, textbox_pos.y - 2.0, textbox_pos.z), textbox_size, 1.0
         );
-        text.set_buffer_size(&mut draw_setting.renderer, textbox_size.x as i32, draw_setting.size.height as i32)
+        text.set_buffer_size(&mut systems.renderer, textbox_size.x as i32, systems.size.height as i32)
             .set_bounds(Some(Bounds::new(textbox_pos.x, textbox_pos.y, 
                                         textbox_pos.x + textbox_size.x, textbox_pos.y + textbox_size.y)))
             .set_default_color(Color::rgba(200, 200, 200, 255))
-            .set_text(&mut draw_setting.renderer, "", Attrs::new());
+            .set_text(&mut systems.renderer, "", Attrs::new());
+        text.use_camera = true;
+        text.changed = true;
         if can_wrap {
-            text.set_wrap(&mut draw_setting.renderer, cosmic_text::Wrap::Word);
+            text.set_wrap(&mut systems.renderer, cosmic_text::Wrap::Word);
         }
         
         Self {
@@ -74,6 +74,9 @@ impl Textbox {
             }
             if let Some(char) = event.logical_key.to_text() {
                 if is_numeric(char) {
+                    if self.data.len() == 1 && &self.data == "0" {
+                        self.data.pop();
+                    }
                     self.data.push_str(char);
                 } else if char.contains('-') && can_be_negative {
                     if self.data.len() == 0 {
@@ -121,8 +124,6 @@ impl Textbox {
         }
     }
 }
-
-use crate::{game_input::*, renderer, DrawSetting};
 
 pub fn is_numeric(char: &str) -> bool {
     char.trim().parse::<i64>().is_ok()

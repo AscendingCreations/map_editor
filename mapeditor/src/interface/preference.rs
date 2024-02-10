@@ -2,10 +2,6 @@ pub mod keybind;
 
 use graphics::*;
 use cosmic_text::{Attrs, Metrics};
-use serde::{Deserialize, Serialize};
-use std::fs::OpenOptions;
-use std::io::BufReader;
-use std::path::Path;
 
 use winit::{
     event::*,
@@ -15,8 +11,7 @@ use winit::{
 pub use keybind::*;
 
 use crate::{
-    collection::ZOOM_LEVEL,
-    gfx_order::*,
+    collection::*,
     interface::{
         button::*,
         scrollbar::*,
@@ -24,6 +19,7 @@ use crate::{
         color_selection::*,
         label::*,
     },
+    config::*,
     DrawSetting,
 };
 
@@ -39,19 +35,19 @@ pub struct MenuButton {
 }
 
 impl MenuButton {
-    pub fn new(draw_setting: &mut DrawSetting, pos: Vec2, msg: &str) -> Self {
-        let mut image = Rect::new(&mut draw_setting.renderer, 0);
+    pub fn new(systems: &mut DrawSetting, pos: Vec2, msg: &str) -> Self {
+        let mut image = Rect::new(&mut systems.renderer, 0);
         image.set_position(Vec3::new(pos.x, pos.y, ORDER_PREFERENCE_MENU_BUTTON))
             .set_size(Vec2::new(118.0, 20.0))
             .set_color(Color::rgba(50, 50, 50, 0))
             .set_use_camera(true);
 
-        let mut text = create_label(draw_setting, 
+        let mut text = create_label(systems, 
                 Vec3::new(pos.x + 2.0, pos.y, ORDER_PREFERENCE_MENU_BUTTON_TEXT),
                 Vec2::new(118.0, 20.0),
                 Bounds::new(pos.x, pos.y, pos.x + 120.0, pos.y + 20.0),
                 Color::rgba(20, 20, 20, 255));
-        text.set_text(&mut draw_setting.renderer, msg, Attrs::new());
+        text.set_text(&mut systems.renderer, msg, Attrs::new());
 
         Self {
             image,
@@ -84,21 +80,21 @@ pub struct KeyList {
 }
 
 impl KeyList {
-    pub fn new(draw_setting: &mut DrawSetting, pos: Vec2, msg: &str, keystr: &str) -> Self {
+    pub fn new(systems: &mut DrawSetting, pos: Vec2, msg: &str, keystr: &str) -> Self {
         let label_size = Vec2::new(100.0, 20.0);
-        let mut text = create_label(draw_setting, Vec3::new(pos.x, pos.y, ORDER_PREFERENCE_KEYLIST_TEXT), label_size,
+        let mut text = create_label(systems, Vec3::new(pos.x, pos.y, ORDER_PREFERENCE_KEYLIST_TEXT), label_size,
                     Bounds::new(pos.x, pos.y, pos.x + label_size.x, pos.y + label_size.y),
                     Color::rgba(180, 180, 180, 255));
-        text.set_text(&mut draw_setting.renderer, msg, Attrs::new());
+        text.set_text(&mut systems.renderer, msg, Attrs::new());
 
         let key_pos = Vec3::new(pos.x + 100.0, pos.y, ORDER_PREFERENCE_KEYLIST_TEXT);
         let key_label_size = Vec2::new(200.0, 20.0);
-        let mut key_string = create_label(draw_setting, key_pos, key_label_size, 
+        let mut key_string = create_label(systems, key_pos, key_label_size, 
                     Bounds::new(key_pos.x, key_pos.y, key_pos.x + key_label_size.x, key_pos.y + key_label_size.y),
                     Color::rgba(180, 180, 180, 255));
-        key_string.set_text(&mut draw_setting.renderer, keystr, Attrs::new());
+        key_string.set_text(&mut systems.renderer, keystr, Attrs::new());
 
-        let mut key_button = Rect::new(&mut draw_setting.renderer, 0);
+        let mut key_button = Rect::new(&mut systems.renderer, 0);
         key_button.set_size(key_label_size)
             .set_position(Vec3::new(key_pos.x - 3.0, key_pos.y, ORDER_PREFERENCE_KEYLIST_BUTTON))
             .set_color(Color::rgba(50, 50, 50, 255))
@@ -128,118 +124,6 @@ impl KeyList {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ConfigData {
-    pub key_code: Vec<Key>,
-    pub key_code_modifier: Vec<[bool; 3]>,
-    pub hide_fps: bool,
-    pub map_selection_color: [u8; 4],
-    pub tile_selection_color: [u8; 4],
-}
-
-impl ConfigData {
-    pub fn default() -> Self {
-        let mut key_code = Vec::new();
-        let mut key_code_modifier = Vec::new();
-
-        for key in 0..EditorKey::Count as usize {
-            let keycode = match key {
-                1 => Key::Character(SmolStr::new("s")), // Save
-                2 => Key::Character(SmolStr::new("z")), // Undo
-                3 => Key::Character(SmolStr::new("y")), // Redo
-                4 => Key::Character(SmolStr::new("d")), // Draw
-                5 => Key::Character(SmolStr::new("e")), // Erase
-                6 => Key::Character(SmolStr::new("f")), // Fill
-                7 => Key::Character(SmolStr::new("y")), // Eyetool
-                _ => Key::Character(SmolStr::new("o")), // Load
-            };
-            let keycodemodifier = match key {
-                1 => [true, false, false], // Save
-                2 => [true, false, false], // Undo
-                3 => [true, false, false], // Redo
-                4 => [false, false, false], // Draw
-                5 => [false, false, false], // Erase
-                6 => [false, false, false], // Fill
-                7 => [false, false, false], // Eyetool
-                _ => [true, false, false], // Load
-            };
-            key_code.push(keycode);
-            key_code_modifier.push(keycodemodifier);
-        }
-
-        Self {
-            key_code,
-            key_code_modifier,
-            hide_fps: false,
-            map_selection_color: [0, 0, 150, 150],
-            tile_selection_color: [80, 0, 0, 150],
-        }
-    }
-
-    pub fn save_config(&self) -> Result<(), AscendingError> {
-        let name = "./config.json".to_string();
-
-        match OpenOptions::new().truncate(true).write(true).open(&name) {
-            Ok(file) => {
-                if let Err(e) = serde_json::to_writer_pretty(&file, self) {
-                    Err(AscendingError::Other(OtherError::new(&format!("Serdes File Error Err {:?}", e))))
-                } else {
-                    Ok(())
-                }
-            }
-            Err(ref e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
-            Err(e) => Err(AscendingError::Other(OtherError::new(&format!("Failed to open {}, Err {:?}", name, e)))),
-        }
-    }
-}
-
-pub fn create_config(data: &ConfigData) -> Result<(), AscendingError> {
-    let name = "./config.json".to_string();
-
-    match OpenOptions::new().write(true).create_new(true).open(&name) {
-        Ok(file) => {
-            if let Err(e) = serde_json::to_writer_pretty(&file, &data) {
-                Err(AscendingError::Other(OtherError::new(&format!("Serdes File Error Err {:?}", e))))
-            } else {
-                Ok(())
-            }
-        }
-        Err(ref e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
-        Err(e) => Err(AscendingError::Other(OtherError::new(&format!("Failed to open {}, Err {:?}", name, e)))),
-    }
-}
-
-pub fn load_config() -> Result<ConfigData, AscendingError> {
-    if !is_config_exist() {
-        let data = ConfigData::default();
-        match create_config(&ConfigData::default()) {
-            Ok(()) => return Ok(data),
-            Err(e) => return Err(e),
-        }
-    }
-
-    let name = "./config.json".to_string();
-    match OpenOptions::new().read(true).open(&name) {
-        Ok(file) => {
-            let reader = BufReader::new(file);
-
-            match serde_json::from_reader(reader) {
-                Ok(data) => Ok(data),
-                Err(e) => {
-                    println!("Error {:?}", e);
-                    Ok(ConfigData::default())
-                }
-            }
-        }
-        Err(e) => Err(AscendingError::Other(OtherError::new(&format!("Failed to open {}, Err {:?}", name, e)))),
-    }
-}
-
-pub fn is_config_exist() -> bool {
-    let name = "./config.json".to_string();
-    Path::new(&name).exists()
-}
-
 pub enum SettingData {
     None,
     Checkbox(Checkbox),
@@ -256,7 +140,6 @@ pub struct Preference {
     pub scrollbar: Scrollbar,
     reset_button: bool,
     pub selected_menu: usize,
-    pub config_data: ConfigData,
     // General
     pub setting_data: Vec<SettingData>,
     // Color selection
@@ -268,23 +151,23 @@ pub struct Preference {
 }
 
 impl Preference {
-    pub fn new(draw_setting: &mut DrawSetting) -> Self {
+    pub fn new(systems: &mut DrawSetting) -> Self {
         // This image is for the transparent shadow that will render behind the preference
-        let mut bg = Rect::new(&mut draw_setting.renderer, 0);
+        let mut bg = Rect::new(&mut systems.renderer, 0);
         bg.set_position(Vec3::new(0.0, 0.0, ORDER_PREFERENCE_SHADOW))
-            .set_size(Vec2::new(draw_setting.size.width, draw_setting.size.height))
+            .set_size(Vec2::new(systems.size.width, systems.size.height))
             .set_color(Color::rgba(0, 0, 0, 200))
             .set_use_camera(true);
 
         // This will contain all rect that will shape the preference window design
         let window_size = Vec2::new(500.0, 350.0);
-        let window_pos = Vec2::new(((draw_setting.size.width / ZOOM_LEVEL) * 0.5) - (window_size.x * 0.5),
-                ((draw_setting.size.height / ZOOM_LEVEL) * 0.5) - (window_size.y * 0.5)).floor();
+        let window_pos = Vec2::new(((systems.size.width / ZOOM_LEVEL) * 0.5) - (window_size.x * 0.5),
+                ((systems.size.height / ZOOM_LEVEL) * 0.5) - (window_size.y * 0.5)).floor();
         let mut window =
-                [Rect::new(&mut draw_setting.renderer, 0), // Window
-                Rect::new(&mut draw_setting.renderer, 0), // Menu BG
-                Rect::new(&mut draw_setting.renderer, 0), // Content
-                Rect::new(&mut draw_setting.renderer, 0)]; // Scrollbar BG
+                [Rect::new(&mut systems.renderer, 0), // Window
+                Rect::new(&mut systems.renderer, 0), // Menu BG
+                Rect::new(&mut systems.renderer, 0), // Content
+                Rect::new(&mut systems.renderer, 0)]; // Scrollbar BG
         window[0].set_size(window_size)
             .set_position(Vec3::new(window_pos.x, window_pos.y, ORDER_PREFERENCE_WINDOW))
             .set_radius(3.0)
@@ -309,13 +192,13 @@ impl Preference {
         // Buttons
         let button_x = window_pos.x + window_size.x - 20.0;
         let buttons = [
-            Button::new(draw_setting, draw_setting.resource.preference_button.allocation, "Cancel",
+            Button::new(systems, systems.resource.preference_button.allocation, "Cancel",
                         Vec2::new(button_x - 80.0, window_pos.y + 15.0), Vec2::new(80.0, 22.0),
                         [ORDER_PREFERENCE_BUTTON, ORDER_PREFERENCE_BUTTON_TEXT], 2.0),
-            Button::new(draw_setting, draw_setting.resource.preference_button.allocation, "Reset",
+            Button::new(systems, systems.resource.preference_button.allocation, "Reset",
                         Vec2::new(button_x - 165.0, window_pos.y + 15.0), Vec2::new(80.0, 22.0),
                         [ORDER_PREFERENCE_BUTTON, ORDER_PREFERENCE_BUTTON_TEXT], 2.0),
-            Button::new(draw_setting, draw_setting.resource.preference_button.allocation, "Save",
+            Button::new(systems, systems.resource.preference_button.allocation, "Save",
                         Vec2::new(button_x - 250.0, window_pos.y + 15.0), Vec2::new(80.0, 22.0),
                         [ORDER_PREFERENCE_BUTTON, ORDER_PREFERENCE_BUTTON_TEXT], 2.0),
         ];
@@ -323,27 +206,21 @@ impl Preference {
         // Menu Buttons
         let button_y = window[1].position.y + (window_size.y - 65.0);
         let mut menu_button = vec![
-            MenuButton::new(draw_setting,
+            MenuButton::new(systems,
                     Vec2::new(window_pos.x + 21.0, button_y - 21.0), "General"),
-            MenuButton::new(draw_setting,
+            MenuButton::new(systems,
                     Vec2::new(window_pos.x + 21.0, button_y - 42.0), "Keybinds"),
         ];
         menu_button[0].set_select(true);
 
         // Scrollbar
-        let scrollbar = Scrollbar::new(draw_setting,
+        let scrollbar = Scrollbar::new(systems,
                             Vec3::new(window[2].position.x + window[2].size.x - 11.0, 
                                             window[2].position.y + window[2].size.y - 5.0, ORDER_PREFERENCE_SCROLLBAR),
                             0, window[2].size.y as usize - 10, 20);
         
         // Keybind Window
-        let keywindow = KeybindWindow::new(draw_setting);
-
-        // Config data
-        let config_data = match load_config() {
-            Ok(data) => data,
-            Err(_) => ConfigData::default(),
-        };
+        let keywindow = KeybindWindow::new(systems);
         
         Self {
             is_open: false,
@@ -357,7 +234,6 @@ impl Preference {
             setting_data: Vec::new(),
             key_list: Vec::new(),
             keywindow,
-            config_data,
             is_coloreditor_open: None,
             editing_index: 0,
         }
@@ -386,6 +262,9 @@ impl Preference {
     pub fn close(&mut self) {
         self.is_open = false;
         self.scrollbar.hide();
+        if self.keywindow.is_open {
+            self.keywindow.close_key();
+        }
     }
 
     pub fn hover_buttons(&mut self, mouse_pos: Vec2) {
@@ -605,21 +484,26 @@ impl Preference {
         // Scrollbar is not being used on any tabs, but it will be kept for future expansion
     }
 
-    pub fn update_key_list(&mut self, draw_setting: &mut DrawSetting, key_index: usize) {
+    pub fn update_key_list(&mut self, 
+                            systems: &mut DrawSetting,
+                            key_index: usize,
+                            config_data: &mut ConfigData) {
         let pos = Vec2::new(self.window[2].position.x + 10.0,
                                 (self.window[2].position.y + self.window[2].size.y) - 30.0);
         let key_text = 
-                    get_key_name(self.config_data.key_code[key_index].clone(), 
-                                self.config_data.key_code_modifier[key_index].clone());
-        self.key_list[key_index] = KeyList::new(draw_setting,
+                    get_key_name(config_data.key_code[key_index].clone(), 
+                    config_data.key_code_modifier[key_index].clone());
+        self.key_list[key_index] = KeyList::new(systems,
             Vec2::new(pos.x, pos.y - (key_index as f32 * 21.0)),
             EditorKey::as_str(key_index), &key_text);
     }
 
-    pub fn reset_preference(&mut self, draw_setting: &mut DrawSetting) {
+    pub fn reset_preference(&mut self,
+                            systems: &mut DrawSetting,
+                            config_data: &mut ConfigData) {
         // Reset data
-        self.config_data = ConfigData::default();
-        open_preference_tab(self, draw_setting);
+        config_data.reset_config();
+        open_preference_tab(self, systems, config_data);
     }
 
     pub fn select_text(&mut self, mouse_pos: Vec2) {
@@ -686,7 +570,9 @@ impl Preference {
     }
 }
 
-pub fn open_preference_tab(preference: &mut Preference, draw_setting: &mut DrawSetting) {
+pub fn open_preference_tab(preference: &mut Preference,
+                            systems: &mut DrawSetting,
+                            config_data: &mut ConfigData) {
     let _key_pos = Vec2::new(preference.window[2].position.x,
                                 preference.window[2].position.y - preference.window[2].size.y);
     match preference.selected_menu {
@@ -698,9 +584,9 @@ pub fn open_preference_tab(preference: &mut Preference, draw_setting: &mut DrawS
                 let pos = Vec2::new(preference.window[2].position.x + 10.0,
                                         (preference.window[2].position.y + preference.window[2].size.y) - 30.0);
                 let key_text = 
-                    get_key_name(preference.config_data.key_code[key].clone(), 
-                                preference.config_data.key_code_modifier[key].clone());
-                let keylist = KeyList::new(draw_setting, 
+                    get_key_name(config_data.key_code[key].clone(), 
+                                config_data.key_code_modifier[key].clone());
+                let keylist = KeyList::new(systems, 
                     Vec2::new(pos.x, pos.y - (key as f32 * 21.0)),
                                 EditorKey::as_str(key), &key_text);
                 preference.key_list.push(keylist);
@@ -715,10 +601,16 @@ pub fn open_preference_tab(preference: &mut Preference, draw_setting: &mut DrawS
             let pos: Vec2 = Vec2::new(preference.window[2].position.x + 10.0,
                 (preference.window[2].position.y + preference.window[2].size.y) - 30.0);
             preference.setting_data = vec![
-                SettingData::Checkbox(Checkbox::new(draw_setting, Vec2::new(pos.x, pos.y), "Hide FPS?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
-                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT])),
-                SettingData::ColorSelection(ColorSelection::new(draw_setting, Vec3::new(pos.x, pos.y - 24.0, ORDER_PREFERENCE_SETTING_IMG1), Vec2::new(70.0, 20.0), preference.config_data.map_selection_color, Some("Map Selection Color"), false)),
-                SettingData::ColorSelection(ColorSelection::new(draw_setting, Vec3::new(pos.x, pos.y - 48.0, ORDER_PREFERENCE_SETTING_IMG1), Vec2::new(70.0, 20.0), preference.config_data.tile_selection_color, Some("Tile Selection Color"), false)),
+                SettingData::Checkbox(Checkbox::new(systems, Vec2::new(pos.x, pos.y), "Hide FPS?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
+                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT], config_data.hide_fps)),
+                SettingData::Checkbox(Checkbox::new(systems, Vec2::new(pos.x, pos.y - 24.0), "Hide Tileset Background?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
+                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT], config_data.hide_tileset_bg)),
+                SettingData::Checkbox(Checkbox::new(systems, Vec2::new(pos.x, pos.y - 48.0), "Hide Map View Background?", Vec2::new(preference.window[2].size.x - 30.0, 20.0),
+                        [ORDER_PREFERENCE_SETTING_IMG1, ORDER_PREFERENCE_SETTING_IMG2, ORDER_PREFERENCE_SETTING_TEXT], config_data.hide_mapview_bg)),
+                SettingData::ColorSelection(ColorSelection::new(systems, Vec3::new(pos.x, pos.y - 72.0, ORDER_PREFERENCE_SETTING_IMG1), 
+                        Vec2::new(70.0, 20.0), config_data.map_selection_color, Some("Map Selection Color"), false)),
+                SettingData::ColorSelection(ColorSelection::new(systems, Vec3::new(pos.x, pos.y - 96.0, ORDER_PREFERENCE_SETTING_IMG1), 
+                        Vec2::new(70.0, 20.0), config_data.tile_selection_color, Some("Tile Selection Color"), false)),
             ];
         } // General: Default
         _ => {}

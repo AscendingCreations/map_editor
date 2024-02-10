@@ -8,7 +8,7 @@ use crate::{
         label::*,
         scrollbar::*,
     },
-    gfx_order::*,
+    collection::*,
     DrawSetting,
 };
 
@@ -60,9 +60,9 @@ pub struct TilesetList {
 }
 
 impl TilesetList {
-    pub fn new(draw_setting: &mut DrawSetting) -> Self {
+    pub fn new(systems: &mut DrawSetting) -> Self {
         let mut bg = vec![
-            Rect::new(&mut draw_setting.renderer, 0), Rect::new(&mut draw_setting.renderer, 0)
+            Rect::new(&mut systems.renderer, 0), Rect::new(&mut systems.renderer, 0)
         ];
         bg[0].set_size(Vec2::new(200.0, 400.0))
             .set_position(Vec3::new(11.0, 369.0, ORDER_TILESETLIST))
@@ -82,7 +82,7 @@ impl TilesetList {
         for index in 0..max_view {
             // Create the selectable buttons
             let mut button = SelectButton {
-                image: Image::new(Some(draw_setting.resource.tileset_list_select.allocation), &mut draw_setting.renderer, 0),
+                image: Image::new(Some(systems.resource.tileset_list_select.allocation), &mut systems.renderer, 0),
                 in_hover: false,
                 is_selected: false,
             };
@@ -92,17 +92,17 @@ impl TilesetList {
             selection_buttons.push(button);
 
             // Create the text
-            let mut text = create_basic_label(draw_setting,
+            let mut text = create_basic_label(systems,
                         Vec3::new(bg[0].position.x + 7.0, bg[0].position.y + 369.0 - (21.0 * index as f32), ORDER_TILESETLIST_LABEL),
                         Vec2::new(100.0, 20.0),
                         Color::rgba(180, 180, 180, 255));
-            text.set_text(&mut draw_setting.renderer, &draw_setting.resource.tilesheet[index].name, Attrs::new());
+            text.set_text(&mut systems.renderer, &systems.resource.tilesheet[index].name, Attrs::new());
             texts.push(text);
         };
 
         // Scrollbar
         let scrollbar_value = MAX_TILESHEET.max(MAX_VISIBLE_LIST) - MAX_VISIBLE_LIST;
-        let scrollbar = Scrollbar::new(draw_setting,
+        let scrollbar = Scrollbar::new(systems,
             Vec3::new(bg[0].position.x + 188.0, bg[0].position.y + 389.0, ORDER_TILESETLIST_SCROLLBAR), scrollbar_value as usize, 377, 20);
 
         // We set the default selected tileset

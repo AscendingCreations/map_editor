@@ -1,9 +1,9 @@
 use graphics::*;
 use crate::{
+    collection::*,
     resource::*,
-    DrawSetting,
-    gfx_order::*,
-    collection::TEXTURE_SIZE,
+    ConfigData,
+    DrawSetting
 };
 
 pub const MAX_TILE_X: u32 = 10;
@@ -19,18 +19,19 @@ pub struct Tileset {
 
 impl Tileset {
     pub fn new(
-        draw_setting: &mut DrawSetting,
+        systems: &mut DrawSetting,
+        config_data: &mut ConfigData,
     ) -> Self {
         let mut tilesheet = Tileset {
-            map: Map::new(&mut draw_setting.renderer, TEXTURE_SIZE),
+            map: Map::new(&mut systems.renderer, TEXTURE_SIZE),
             selected_tile: 0,
-            selection: Rect::new(&mut draw_setting.renderer, 0),
+            selection: Rect::new(&mut systems.renderer, 0),
             select_start: Vec2::new(0.0, (MAX_TILE_Y - 1) as f32),
             select_size: Vec2::new(1.0, 1.0),
         };
 
         // Loop throughout all texture and place them on the map based on their texture location
-        for tiledata in &draw_setting.resource.tilesheet[tilesheet.selected_tile].tile.tiles
+        for tiledata in &systems.resource.tilesheet[tilesheet.selected_tile].tile.tiles
         {
             let (id, x, y) = (
                 tiledata.tex_id,
@@ -58,7 +59,9 @@ impl Tileset {
                                                 tilesheet.map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32,
                                                 ORDER_TILESET_SELECTION))
                             .set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
-                            .set_color(Color::rgba(80, 0, 0, 150))
+                            .set_color(Color::rgba(config_data.tile_selection_color[0], 
+                                                    config_data.tile_selection_color[1], 
+                                                    config_data.tile_selection_color[2], 150))
                             .set_use_camera(true);
 
         tilesheet
@@ -127,4 +130,22 @@ impl Tileset {
             }
         }
     }
+}
+
+// Tileset //
+pub fn in_tileset(screen_pos: Vec2, tileset: &Tileset) -> bool {
+    screen_pos.x >= tileset.map.pos.x
+        && screen_pos.x
+            <= tileset.map.pos.x + (MAX_TILE_X * TEXTURE_SIZE) as f32
+        && screen_pos.y >= tileset.map.pos.y
+        && screen_pos.y
+            <= tileset.map.pos.y + (MAX_TILE_Y * TEXTURE_SIZE) as f32
+}
+
+pub fn get_tileset_pos(screen_pos: Vec2, tileset: &Tileset) -> Vec2 {
+    let tile_pos = screen_pos - Vec2::new(tileset.map.pos.x, tileset.map.pos.y);
+    Vec2::new(
+        (tile_pos.x / TEXTURE_SIZE as f32).floor(),
+        (tile_pos.y / TEXTURE_SIZE as f32).floor(),
+    )
 }

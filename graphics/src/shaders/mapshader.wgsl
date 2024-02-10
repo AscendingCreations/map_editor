@@ -77,8 +77,20 @@ fn vertex(
         }
     }
 
-    result.clip_position =  (global.proj * global.view) * vec4<f32>(pos, 1.0);
     result.color = unpack_color(vertex.color);
+
+    let id = global.seconds / (f32(250) / 1000.0);
+    let frame = u32(floor(id % f32(4)));
+    
+    if pos.z == 9.2 && frame != 1u {
+        result.color.w = 0.0;
+    } else if pos.z == 9.1 && frame != 2u {
+        result.color.w = 0.0;
+    } else if pos.z == 9.0 && frame != 3u {
+        result.color.w = 0.0;
+    }
+
+    result.clip_position =  (global.proj * global.view) * vec4<f32>(pos, 1.0);
     result.uv_layer = i32(vertex.texture_layer);
     return result;
 }

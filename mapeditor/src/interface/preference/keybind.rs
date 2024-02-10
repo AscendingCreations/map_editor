@@ -7,8 +7,7 @@ use winit::{
 };
 
 use crate::{
-    collection::ZOOM_LEVEL,
-    gfx_order::*,
+    collection::*,
     interface::{
         button::*,
         label::*,
@@ -58,12 +57,12 @@ pub struct KeybindWindow {
 }
 
 impl KeybindWindow {
-    pub fn new(draw_setting: &mut DrawSetting) -> Self {
+    pub fn new(systems: &mut DrawSetting) -> Self {
         // This will consist all rect that will shape the preference window design
         let window_size = Vec2::new(300.0, 100.0);
-        let window_pos = Vec2::new(((draw_setting.size.width / ZOOM_LEVEL) * 0.5) - (window_size.x * 0.5),
-                ((draw_setting.size.height / ZOOM_LEVEL) * 0.5) - (window_size.y * 0.5)).floor();
-        let mut window = Rect::new(&mut draw_setting.renderer, 0);
+        let window_pos = Vec2::new(((systems.size.width / ZOOM_LEVEL) * 0.5) - (window_size.x * 0.5),
+                ((systems.size.height / ZOOM_LEVEL) * 0.5) - (window_size.y * 0.5)).floor();
+        let mut window = Rect::new(&mut systems.renderer, 0);
         window.set_size(window_size)
             .set_position(Vec3::new(window_pos.x, window_pos.y, ORDER_KEYBIND_WINDOW))
             .set_radius(3.0)
@@ -74,19 +73,19 @@ impl KeybindWindow {
 
         // Text
         let text_pos = Vec3::new(window_pos.x, window_pos.y + window_size.y - 45.0, ORDER_KEYBIND_TEXT);
-        let mut text = create_basic_label(draw_setting, text_pos, 
+        let mut text = create_basic_label(systems, text_pos, 
                             Vec2::new(window_size.x, 20.0),
                             Color::rgba(180, 180, 180, 255));
-        text.set_text(&mut draw_setting.renderer, "Please enter a Key", Attrs::new());
+        text.set_text(&mut systems.renderer, "Please enter a Key", Attrs::new());
         center_text(&mut text);
 
         // Buttons
         let button_x = window_pos.x + ((window_size.x * 0.5).floor() - 82.0);
         let buttons = [
-            Button::new(draw_setting, draw_setting.resource.preference_button.allocation, "Cancel",
+            Button::new(systems, systems.resource.preference_button.allocation, "Cancel",
                         Vec2::new(button_x + 85.0, window_pos.y + 15.0), Vec2::new(80.0, 22.0),
                         [ORDER_KEYBIND_BUTTON, ORDER_KEYBIND_BUTTON_TEXT], 2.0),
-            Button::new(draw_setting, draw_setting.resource.preference_button.allocation, "Save",
+            Button::new(systems, systems.resource.preference_button.allocation, "Save",
                         Vec2::new(button_x, window_pos.y + 15.0), Vec2::new(80.0, 22.0),
                         [ORDER_KEYBIND_BUTTON, ORDER_KEYBIND_BUTTON_TEXT], 2.0),
         ];
@@ -104,7 +103,7 @@ impl KeybindWindow {
         }
     }
 
-    pub fn open_key(&mut self, draw_setting: &mut DrawSetting, key_index: usize) {
+    pub fn open_key(&mut self, systems: &mut DrawSetting, key_index: usize) {
         self.is_open = true;
         self.window.changed = true;
         self.text.changed = true;
@@ -115,7 +114,7 @@ impl KeybindWindow {
         self.key_code = None;
         self.key_modifier = [false; 3];
         self.key_index = key_index;
-        self.text.set_text(&mut draw_setting.renderer, "Please enter a Key", Attrs::new());
+        self.text.set_text(&mut systems.renderer, "Please enter a Key", Attrs::new());
         center_text(&mut self.text);
     }
 
@@ -123,21 +122,14 @@ impl KeybindWindow {
         self.is_open = false;
     }
 
-    pub fn set_key_modifier_value(&mut self, modifier_index: usize, is_pressed: bool) {
-        if self.hold_key_modifier[modifier_index] == is_pressed {
-            return;
-        }
-        self.hold_key_modifier[modifier_index] = is_pressed;
-    }
-
     pub fn edit_key(&mut self, event: &KeyEvent, renderer: &mut GpuRenderer) {
         match event.physical_key {
             PhysicalKey::Code(KeyCode::ControlLeft) | PhysicalKey::Code(KeyCode::ControlRight) => 
-                self.set_key_modifier_value(0, event.state.is_pressed()),
+                self.hold_key_modifier[0] = event.state.is_pressed(),
             PhysicalKey::Code(KeyCode::ShiftLeft) | PhysicalKey::Code(KeyCode::ShiftRight) => 
-                self.set_key_modifier_value(1, event.state.is_pressed()),
+                self.hold_key_modifier[1] = event.state.is_pressed(),
             PhysicalKey::Code(KeyCode::Space) => 
-                self.set_key_modifier_value(2, event.state.is_pressed()),
+                self.hold_key_modifier[2] = event.state.is_pressed(),
             _ => {
                 if is_valid_key_code(event) {
                     self.key_code = Some(event.logical_key.clone());
@@ -243,7 +235,7 @@ pub fn get_key_name(key_code: Key, key_code_modifier: [bool; 3]) -> String {
     button_text
 }
 
-fn is_valid_key_code(event: &KeyEvent) -> bool {
+pub fn is_valid_key_code(event: &KeyEvent) -> bool {
     match event.physical_key {
         PhysicalKey::Code(
             KeyCode::KeyA | KeyCode::KeyB | KeyCode::KeyC | KeyCode::KeyD

@@ -1,4 +1,3 @@
-pub mod map_input;
 pub mod attributes;
 mod recording;
 
@@ -6,15 +5,11 @@ use indexmap::IndexMap;
 use cosmic_text::{Attrs, Metrics, Weight};
 use graphics::*;
 
-pub use map_input::*;
 pub use attributes::*;
 use recording::*;
 
 use crate::{
-    DrawSetting,
-    collection::TEXTURE_SIZE,
-    gfx_order::*,
-    map_data::*,
+    collection::*, create_basic_label, map_data::*, ConfigData, DrawSetting
 };
 
 
@@ -65,13 +60,16 @@ pub struct MapView {
 }
 
 impl MapView {
-    pub fn new(draw_setting: &mut DrawSetting) -> Self {
+    pub fn new(
+        systems: &mut DrawSetting,
+        config_data: &mut ConfigData,
+    ) -> Self {
         let mut maps = Vec::with_capacity(9);
         let mut link_map_selection = Vec::with_capacity(8);
         
         // Create 9 maps for our view of the main map and the surrounding maps
         for count in 0..9 {
-            let mut map = Map::new(&mut draw_setting.renderer, TEXTURE_SIZE);
+            let mut map = Map::new(&mut systems.renderer, TEXTURE_SIZE);
 
             // Set default position of each view
             // Note: Index '0' is the main view on the center
@@ -94,7 +92,7 @@ impl MapView {
 
         // We add the link selection overlay above the link map as a selecting effect
         for count in 0..8 {
-            let mut image = Rect::new(&mut draw_setting.renderer, 0);
+            let mut image = Rect::new(&mut systems.renderer, 0);
             image.set_size(match count {
                                 1 => { Vec2::new(TEXTURE_SIZE as f32 * 32.0, TEXTURE_SIZE as f32 * 2.0) }, // Top
                                 2 => { Vec2::new(TEXTURE_SIZE as f32 * 2.0, TEXTURE_SIZE as f32 * 2.0) }, // Top Right
@@ -115,10 +113,12 @@ impl MapView {
         }
 
         // This will create the selection box on the map view
-        let mut selection_preview = Rect::new(&mut draw_setting.renderer, 0);
+        let mut selection_preview = Rect::new(&mut systems.renderer, 0);
         selection_preview.set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
                         .set_position(Vec3::new(maps[0].pos.x, maps[0].pos.y, ORDER_MAP_SELECTION))
-                        .set_color(Color::rgba(0, 0, 150, 150))
+                        .set_color(Color::rgba(config_data.map_selection_color[0], 
+                                                config_data.map_selection_color[1], 
+                                                config_data.map_selection_color[2], 150))
                         .set_use_camera(true);
 
         // Map Attributes & Map Zones
@@ -128,7 +128,7 @@ impl MapView {
             let pos = Vec2::new(maps[0].pos.x + ((i % 32) * TEXTURE_SIZE) as f32,
                                     maps[0].pos.y + ((i / 32) * TEXTURE_SIZE) as f32);
             // BG
-            let mut image = Rect::new(&mut draw_setting.renderer, 0);
+            let mut image = Rect::new(&mut systems.renderer, 0);
             image.set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
                 .set_position(Vec3::new(pos.x, pos.y, ORDER_MAP_ATTRIBUTE_BG))
                 .set_color(Color::rgba(0,0,0,0))
@@ -136,18 +136,10 @@ impl MapView {
 
             // Text
             let label_size = Vec2::new(32.0, 32.0);
-            let mut text = Text::new(
-                &mut draw_setting.renderer,
-                Some(Metrics::new(16.0, 16.0).scale(draw_setting.scale as f32)),
-                Vec3::new(pos.x, pos.y - 13.0, ORDER_MAP_ATTRIBUTE_TEXT), 
-                label_size,
-                1.0
-            );
-            text.set_buffer_size(&mut draw_setting.renderer, draw_setting.size.width as i32, draw_setting.size.height as i32)
-                .set_bounds(Some(Bounds::new(pos.x, pos.y, pos.x + label_size.x, pos.y + label_size.y)))
-                .set_default_color(Color::rgba(255,255,255,255));
-            text.use_camera = true;
-            text.changed = true;
+            let text = create_basic_label(systems,
+                    Vec3::new(pos.x, pos.y - 13.0, ORDER_MAP_ATTRIBUTE_TEXT),
+                    label_size,
+                    Color::rgba(255,255,255,255));
 
             map_attributes.push(MapAttributes {
                 pos,
@@ -157,7 +149,7 @@ impl MapView {
             });
 
             // Zone BG
-            let mut zone_box = Rect::new(&mut draw_setting.renderer, 0);
+            let mut zone_box = Rect::new(&mut systems.renderer, 0);
             zone_box.set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
                 .set_position(Vec3::new(pos.x, pos.y, ORDER_MAP_ZONE))
                 .set_color(Color::rgba(0,0,0,0))
@@ -614,4 +606,20 @@ pub fn get_zone_color(zone_index: usize) -> Color {
         4 => Color::rgba(40, 150, 150, 140),
         _ => Color::rgba(40, 40, 200, 140),
     }
+}
+
+pub fn in_map(screen_pos: Vec2, mapview: &MapView) -> bool {
+    screen_pos.x >= mapview.maps[0].pos.x
+        && screen_pos.x <= mapview.maps[0].pos.x + (32 * TEXTURE_SIZE) as f32
+        && screen_pos.y >= mapview.maps[0].pos.y
+        && screen_pos.y <= mapview.maps[0].pos.y + (32 * TEXTURE_SIZE) as f32
+}
+
+pub fn get_map_pos(screen_pos: Vec2, mapview: &MapView) -> Vec2 {
+    let tile_pos =
+        screen_pos - Vec2::new(mapview.maps[0].pos.x, mapview.maps[0].pos.y);
+    Vec2::new(
+        (tile_pos.x / TEXTURE_SIZE as f32).floor(),
+        (tile_pos.y / TEXTURE_SIZE as f32).floor(),
+    )
 }

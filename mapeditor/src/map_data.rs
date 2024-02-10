@@ -6,8 +6,7 @@ use indexmap::IndexMap;
 use graphics::*;
 
 use crate::{
-    map::*,
-    attributes::*,
+    attributes::*, map::*, DrawSetting, Interface
 };
 
 #[derive(Debug)]
@@ -144,7 +143,6 @@ impl EditorData {
                     mapdata.zones[i].1[npc_index] = mapview.map_zone_setting[i].npc_id[npc_index];
                 }
             }
-            println!("Map Data Save {:?}", mapdata.fixed_weather);
             mapdata.fixed_weather = mapview.fixed_weather;
             if should_save {
                 mapdata.save_file().unwrap();
@@ -156,12 +154,52 @@ impl EditorData {
         }
     }
 
-    pub fn save_all_maps(&mut self) {
-        for (key, value) in self.did_map_change.iter() {
-            // Save only with changes
-            if *value {
-                if let Some(mapdata) = self.maps.get_mut(key) {
+    pub fn save_all_maps(&mut self, mapview: &MapView) {
+        let keys_to_remove: Vec<_> = self.did_map_change
+            .keys()
+            .filter(|&key| self.did_map_change[key])
+            .cloned()
+            .collect();
+    
+        for key in keys_to_remove {
+            let mut should_remove = true;
+            if let Some(mapdata) = self.maps.get_mut(&key) {
+                if self.x == mapdata.x && self.y == mapdata.y && self.group == mapdata.group {
+                    should_remove = false;
+                    if let Some(did_change) = self.did_map_change.get_mut(&key) {
+                        *did_change = false;
+                    }
+                    self.save_map_data(mapview, None);
+                } else {
                     mapdata.save_file().unwrap();
+                }
+            }
+            if should_remove {
+                self.maps.shift_remove(&key);
+                self.did_map_change.shift_remove(&key);
+            }
+        }
+    }
+
+    pub fn reset_all_map(&mut self) {
+        let keys_to_reset: Vec<_> = self.did_map_change
+            .keys()
+            .filter(|&key| self.did_map_change[key])
+            .cloned()
+            .collect();
+    
+        for key in keys_to_reset {
+            if let Some(mapdata) = self.maps.get_mut(&key) {
+                if self.x == mapdata.x && self.y == mapdata.y && self.group == mapdata.group {
+                    if let Some(did_change) = self.did_map_change.get_mut(&key) {
+                        *did_change = false;
+                    }
+                    if let Some(mapdata) = self.maps.get_mut(&key) {
+                        *mapdata = load_file(self.x, self.y, self.group).unwrap();
+                    }
+                } else {
+                    self.maps.shift_remove(&key);
+                    self.did_map_change.shift_remove(&key);
                 }
             }
         }
@@ -208,7 +246,7 @@ impl EditorData {
             map.clear_map(maplink + 1);
 
             // Set the map id, position for loading
-            let (start, size, key, x, y);
+            let (start, size, x, y);
             match maplink {
                 1 => { // Top
                     x = self.x; y = self.y + 1;
@@ -251,54 +289,52 @@ impl EditorData {
                     start = Vec2::new(30.0, 0.0);
                 },
             }
-            key = format!("{}_{}_{}", x, y, self.group);
+            let key = format!("{}_{}_{}", x, y, self.group);
 
             // Let's check if map exist, and only load if map exist
             if is_map_exist(x, y, self.group) {
                 // Check if map is already on our indexmap, otherwise we load it
-                if !self.maps.contains_key(&key) {
+                let mapdata = if !self.maps.contains_key(&key) {
                     // Since the map is not loaded, we must load the file and add it on the loaded maps
-                    let map = load_file(x, y, self.group).unwrap();
-                    self.maps.insert(key.clone(), map);
-                    self.did_map_change.insert(key.clone(), false);
-                }
-
-                // Add the tiles
-                if let Some(mapdata) = self.maps.get(&key) {
-                    (0..size.x as i32).for_each(|x| {
-                        (0..size.y as i32).for_each(|y| {
-                            (0..8).for_each(|layer| {
-                                let tile_num = get_tile_pos(start.x as i32 + x, start.y as i32 + y);
-                                let id = mapdata.tile[layer].id[tile_num] as usize;
+                    load_file(x, y, self.group).unwrap()
+                } else {
+                    self.maps.get(&key).unwrap().clone()
+                };
+                
+                (0..size.x as i32).for_each(|x| {
+                    (0..size.y as i32).for_each(|y| {
+                        (0..8).for_each(|layer| {
+                            let tile_num = get_tile_pos(start.x as i32 + x, start.y as i32 + y);
+                            let id = mapdata.tile[layer].id[tile_num] as usize;
                                 
-                                if id > 0 {
-                                    map.maps[maplink + 1].set_tile((x as u32, y as u32, layer as u32), 
-                                                TileData { 
-                                                    id,
-                                                    color: Color::rgba(255, 255, 255, 255),
-                                                });
-                                }
-                            });
+                            if id > 0 {
+                                map.maps[maplink + 1].set_tile((x as u32, y as u32, layer as u32), 
+                                            TileData { 
+                                                id,
+                                                color: Color::rgba(255, 255, 255, 255),
+                                            });
+                            }
                         });
                     });
-                }
+                });
             }
         });
     }
 
-    pub fn set_map_change(&mut self) -> bool {
+    pub fn set_map_change(&mut self,
+                        mapview: &mut MapView)
+    {
         if let Some(did_change) = self.did_map_change.get_mut(&self.current_index) {
             *did_change = true;
-            return true;
+            mapview.record.clear_redo();
         }
-        false
     }
 
     pub fn got_changes(&mut self) -> bool {
         self.did_map_change.values().any(|&value| value)
     }
 
-    pub fn did_change(&mut self, x: i32, y: i32, group: u64) -> bool {
+    pub fn did_change(&self, x: i32, y: i32, group: u64) -> bool {
         let key_data = format!("{}_{}_{}", x, y, group);
         if !self.did_map_change.contains_key(&key_data) {
             return false;

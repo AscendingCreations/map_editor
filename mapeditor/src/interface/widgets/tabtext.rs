@@ -4,7 +4,7 @@ use cosmic_text::{Attrs, Metrics};
 use crate::{
     DrawSetting,
     interface::label::*,
-    gfx_order::*,
+    collection::*,
 };
 
 pub struct TabText {
@@ -16,15 +16,15 @@ pub struct TabText {
 }
 
 impl TabText {
-    pub fn new(draw_setting: &mut DrawSetting, pos: Vec2) -> Self {
-        let mut button = Image::new(Some(draw_setting.resource.tab_option.allocation), &mut draw_setting.renderer, 1);
+    pub fn new(systems: &mut DrawSetting, pos: Vec2) -> Self {
+        let mut button = Image::new(Some(systems.resource.tab_option.allocation), &mut systems.renderer, 1);
 
         // Setup the interface position, height, width, color and texture coordinate
         button.pos = Vec3::new(pos.x, pos.y, ORDER_TAB_BUTTON);
         button.hw = Vec2::new(194.0, 20.0);
         button.uv = Vec4::new(0.0, 0.0, 194.0, 20.0);
 
-        let text = create_basic_label(draw_setting,
+        let text = create_basic_label(systems,
             Vec3::new(pos.x + 24.0, pos.y - 1.0, ORDER_TAB_LABEL),
             Vec2::new(165.0, 20.0),
             Color::rgba(120, 120, 120, 255));

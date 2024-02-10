@@ -2,7 +2,7 @@ use graphics::*;
 use cosmic_text::{Attrs, Metrics};
 
 use crate::{
-    gfx_order::*, 
+    collection::*,
     interface::{
         label::*,
         textbox::*,
@@ -22,10 +22,10 @@ pub struct ColorEditor {
 }
 
 impl ColorEditor {
-    pub fn new(draw_setting: &mut DrawSetting, pos: Vec2, z_order: [f32; 3], data: [u8; 4], can_edit_alpha: bool) -> Self {
+    pub fn new(systems: &mut DrawSetting, pos: Vec2, z_order: [f32; 3], data: [u8; 4], can_edit_alpha: bool) -> Self {
         let window_size = if can_edit_alpha { Vec2::new(100.0, 153.0) } else { Vec2::new(100.0, 128.0) };
         let window_pos = Vec3::new(pos.x, pos.y - window_size.y, z_order[0]);
-        let mut window = Rect::new(&mut draw_setting.renderer, 0);
+        let mut window = Rect::new(&mut systems.renderer, 0);
         window.set_size(window_size)
                 .set_position(window_pos)
                 .set_color(Color::rgba(70, 70, 70, 255))
@@ -38,41 +38,41 @@ impl ColorEditor {
         let mut label = vec![];
         let mut textbox = vec![];
 
-        label.push(create_basic_label(draw_setting, 
+        label.push(create_basic_label(systems, 
                 Vec3::new(content_pos.x, content_pos.y - 25.0, ORDER_COLOREDIT_TEXTBOX_TEXT), 
                 Vec2::new(20.0, 20.0), Color::rgba(180, 180, 180, 255)));
-        label[0].set_text(&mut draw_setting.renderer, "R", Attrs::new());
-        label.push(create_basic_label(draw_setting, 
+        label[0].set_text(&mut systems.renderer, "R", Attrs::new());
+        label.push(create_basic_label(systems, 
                 Vec3::new(content_pos.x, content_pos.y - 50.0, ORDER_COLOREDIT_TEXTBOX_TEXT), 
                 Vec2::new(20.0, 20.0), Color::rgba(180, 180, 180, 255)));
-        label[1].set_text(&mut draw_setting.renderer, "G", Attrs::new());
-        label.push(create_basic_label(draw_setting, 
+        label[1].set_text(&mut systems.renderer, "G", Attrs::new());
+        label.push(create_basic_label(systems, 
                 Vec3::new(content_pos.x, content_pos.y - 75.0, ORDER_COLOREDIT_TEXTBOX_TEXT), 
                 Vec2::new(20.0, 20.0), Color::rgba(180, 180, 180, 255)));
-        label[2].set_text(&mut draw_setting.renderer, "B", Attrs::new());
+        label[2].set_text(&mut systems.renderer, "B", Attrs::new());
 
-        textbox.push(Textbox::new(draw_setting, Vec3::new(content_pos.x + 20.0, content_pos.y - 25.0, ORDER_COLOREDIT_TEXTBOX),
+        textbox.push(Textbox::new(systems, Vec3::new(content_pos.x + 20.0, content_pos.y - 25.0, ORDER_COLOREDIT_TEXTBOX),
                     Vec2::new(60.0, 24.0), false));
-        textbox[0].input_text(&mut draw_setting.renderer, data[0].to_string());
-        textbox.push(Textbox::new(draw_setting, Vec3::new(content_pos.x + 20.0, content_pos.y - 50.0, ORDER_COLOREDIT_TEXTBOX),
+        textbox[0].input_text(&mut systems.renderer, data[0].to_string());
+        textbox.push(Textbox::new(systems, Vec3::new(content_pos.x + 20.0, content_pos.y - 50.0, ORDER_COLOREDIT_TEXTBOX),
                     Vec2::new(60.0, 24.0), false));
-        textbox[1].input_text(&mut draw_setting.renderer, data[1].to_string());
-        textbox.push(Textbox::new(draw_setting, Vec3::new(content_pos.x + 20.0, content_pos.y - 75.0, ORDER_COLOREDIT_TEXTBOX),
+        textbox[1].input_text(&mut systems.renderer, data[1].to_string());
+        textbox.push(Textbox::new(systems, Vec3::new(content_pos.x + 20.0, content_pos.y - 75.0, ORDER_COLOREDIT_TEXTBOX),
                     Vec2::new(60.0, 24.0), false));
-        textbox[2].input_text(&mut draw_setting.renderer, data[2].to_string());
+        textbox[2].input_text(&mut systems.renderer, data[2].to_string());
 
         if can_edit_alpha {
-            label.push(create_basic_label(draw_setting, 
+            label.push(create_basic_label(systems, 
                     Vec3::new(content_pos.x, content_pos.y - 100.0, ORDER_COLOREDIT_TEXTBOX_TEXT), 
                     Vec2::new(20.0, 20.0), Color::rgba(180, 180, 180, 255)));
-            label[3].set_text(&mut draw_setting.renderer, "A", Attrs::new());
+            label[3].set_text(&mut systems.renderer, "A", Attrs::new());
 
-            textbox.push(Textbox::new(draw_setting, Vec3::new(content_pos.x + 20.0, content_pos.y - 100.0, ORDER_COLOREDIT_TEXTBOX),
+            textbox.push(Textbox::new(systems, Vec3::new(content_pos.x + 20.0, content_pos.y - 100.0, ORDER_COLOREDIT_TEXTBOX),
                     Vec2::new(60.0, 24.0), false));
-            textbox[3].input_text(&mut draw_setting.renderer, data[3].to_string());
+            textbox[3].input_text(&mut systems.renderer, data[3].to_string());
         }
 
-        let button = Button::new(draw_setting, draw_setting.resource.preference_button.allocation, "Apply",
+        let button = Button::new(systems, systems.resource.preference_button.allocation, "Apply",
                 Vec2::new(window_pos.x + 10.0, window_pos.y + 10.0), Vec2::new(80.0, 22.0), 
                 [ORDER_COLOREDIT_BUTTON, ORDER_COLOREDIT_BUTTON_LABEL], 2.0);
 
@@ -121,8 +121,8 @@ pub struct ColorSelection {
 }
 
 impl ColorSelection {
-    pub fn new(draw_setting: &mut DrawSetting, pos: Vec3, size: Vec2, color: [u8; 4], msg: Option<&str>, can_edit_alpha: bool) -> Self {
-        let mut image = Rect::new(&mut draw_setting.renderer, 0);
+    pub fn new(systems: &mut DrawSetting, pos: Vec3, size: Vec2, color: [u8; 4], msg: Option<&str>, can_edit_alpha: bool) -> Self {
+        let mut image = Rect::new(&mut systems.renderer, 0);
         image.set_size(size).set_position(Vec3::new(pos.x, pos.y, pos.z))
                 .set_color(Color::rgba(color[0], color[1], color[2], color[3]))
                 .set_radius(3.0)
@@ -131,17 +131,17 @@ impl ColorSelection {
                 .set_use_camera(true);
         
         let text_pos = Vec2::new(pos.x + size.x + 10.0, pos.y);
-        let mut text = create_basic_label(draw_setting, 
+        let mut text = create_basic_label(systems, 
                 Vec3::new(text_pos.x, text_pos.y, pos.z), 
                 Vec2::new(100.0, 20.0),
                 Color::rgba(180, 180, 180, 255));
         
         if msg.is_some() {
-            text.set_text(&mut draw_setting.renderer, msg.unwrap(), Attrs::new());
+            text.set_text(&mut systems.renderer, msg.unwrap(), Attrs::new());
             text.set_bounds(Some(Bounds::new(text_pos.x, text_pos.y, text_pos.x + text.measure().x, text_pos.y + 20.0)));
         };
         
-        let color_editor = ColorEditor::new(draw_setting,
+        let color_editor = ColorEditor::new(systems,
                             Vec2::new(pos.x, pos.y),
                             [ORDER_COLOREDIT_WINDOW, ORDER_COLOREDIT_TEXTBOX, ORDER_COLOREDIT_TEXTBOX_TEXT], 
                             color.clone(), can_edit_alpha);

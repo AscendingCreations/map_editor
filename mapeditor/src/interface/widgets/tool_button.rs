@@ -1,5 +1,4 @@
 use graphics::*;
-use crate::interface::MAX_TOOL;
 
 #[derive(PartialEq, Eq)]
 pub enum ButtonState {

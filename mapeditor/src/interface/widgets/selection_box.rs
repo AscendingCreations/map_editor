@@ -56,20 +56,18 @@ pub struct SelectionBox {
     pub list: Vec<String>,
     pub scrollbar: Scrollbar,
     pub is_list_visible: bool,
-
+    pub selected_index: usize,
     is_hover: bool,
     is_click: bool,
-    pub selected_index: usize,
     list_exceed: bool,
-
     start_index: usize,
 }
 
 impl SelectionBox {
-    pub fn new(draw_setting: &mut DrawSetting, pos: Vec2, z_order: [f32; 6], width: f32, list: Vec<String>) -> Self {
+    pub fn new(systems: &mut DrawSetting, pos: Vec2, z_order: [f32; 6], width: f32, list: Vec<String>) -> Self {
         let mut rect = vec![
-            Rect::new(&mut draw_setting.renderer, 0),
-            Rect::new(&mut draw_setting.renderer, 0)
+            Rect::new(&mut systems.renderer, 0),
+            Rect::new(&mut systems.renderer, 0)
         ];
         // Dropdown Box
         rect[0].set_position(Vec3::new(pos.x, pos.y, z_order[0]))
@@ -80,8 +78,8 @@ impl SelectionBox {
             .set_use_camera(true);
 
         // Dropdown Box Image
-        let mut button = Image::new(Some(draw_setting.resource.selection_drop_button.allocation),
-                &mut draw_setting.renderer, 0);
+        let mut button = Image::new(Some(systems.resource.selection_drop_button.allocation),
+                &mut systems.renderer, 0);
         button.pos = Vec3::new(pos.x + (width - 22.0), pos.y, z_order[0]);
         button.hw = Vec2::new(22.0, 24.0);
         button.uv = Vec4::new(0.0, 0.0, 22.0, 24.0);
@@ -93,7 +91,7 @@ impl SelectionBox {
         let list_exceed = if list.len() > MAX_VISIBLE_LIST { true } else { false };
 
         let left_over = if list.len() > MAX_VISIBLE_LIST { list.len() - MAX_VISIBLE_LIST } else { 0 };
-        let scrollbar = Scrollbar::new(draw_setting,
+        let scrollbar = Scrollbar::new(systems,
             Vec3::new(pos.x + width - 13.0, pos.y - 6.0, z_order[5]), left_over, 90, 20);
 
         rect[1].set_position(Vec3::new(pos.x, pos.y - (list_size - 1.0), z_order[2]))
@@ -106,7 +104,7 @@ impl SelectionBox {
         for index in 0..visible_list {
             let lpos = Vec2::new(pos.x + 4.0, pos.y - 22.0 - (20.0 * index as f32));
 
-            let mut lrect = Rect::new(&mut draw_setting.renderer, 0);
+            let mut lrect = Rect::new(&mut systems.renderer, 0);
             lrect.set_position(Vec3::new(lpos.x - 2.0, lpos.y + 1.0, z_order[3]))
                 .set_color(Color::rgba(35, 35, 35, 255))
                 .set_use_camera(true);
@@ -116,19 +114,19 @@ impl SelectionBox {
                 lrect.set_size(Vec2::new(width - 4.0, 20.0));
             }
             
-            let mut ltext = create_basic_label(draw_setting, 
+            let mut ltext = create_basic_label(systems, 
                 Vec3::new(lpos.x, lpos.y, z_order[4]),
                 Vec2::new(width - 20.0, 20.0), Color::rgba(180, 180, 180, 255));
-            ltext.set_text(&mut draw_setting.renderer, &list[index], Attrs::new());
+            ltext.set_text(&mut systems.renderer, &list[index], Attrs::new());
 
             list_text.push(ListText { rect: lrect, text: ltext, is_hover: false, is_select: false });
         }
         
         // Selected Data Text
-        let mut text = create_basic_label(draw_setting, 
+        let mut text = create_basic_label(systems, 
                 Vec3::new(pos.x + 4.0, pos.y + 1.0, z_order[1]), Vec2::new(width - 26.0, 20.0),
                 Color::rgba(180, 180, 180, 255));
-        text.set_text(&mut draw_setting.renderer, &list[0], Attrs::new());
+        text.set_text(&mut systems.renderer, &list[0], Attrs::new());
 
         Self {
             button,
