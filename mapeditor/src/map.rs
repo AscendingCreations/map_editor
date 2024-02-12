@@ -15,19 +15,20 @@ use crate::{
 
 pub struct MapAttributes {
     pub pos: Vec2,
-    pub image: Rect,
-    pub text: Text,
+    pub image: usize,
+    pub text: usize,
     pub attribute: MapAttribute
 }
 
 impl MapAttributes {
-    pub fn set_attribute(&mut self, renderer: &mut GpuRenderer, attribute: MapAttribute) {
+    pub fn set_attribute(&mut self, systems: &mut DrawSetting, attribute: MapAttribute) {
         self.attribute = attribute.clone();
-        self.image.set_color(MapAttribute::get_color(&self.attribute));
-        self.text.set_text(renderer, MapAttribute::as_map_str(&self.attribute), Attrs::new());
-        let size = self.text.measure();
-        self.text.pos.x = self.pos.x + (TEXTURE_SIZE as f32 * 0.5) - (size.x * 0.5);
-        self.text.changed = true;
+        systems.gfx.set_color(self.image, MapAttribute::get_color(&self.attribute));
+        systems.gfx.set_text(&mut systems.renderer, self.text, MapAttribute::as_map_str(&self.attribute));
+        let size = systems.gfx.get_measure(self.text);
+        let mut pos = systems.gfx.get_pos(self.text);
+        pos.x = self.pos.x + (TEXTURE_SIZE as f32 * 0.5) - (size.x * 0.5);
+        systems.gfx.set_pos(self.text, pos);
     }
 }
 
@@ -44,13 +45,13 @@ pub struct MapZoneSetting {
 
 pub struct MapView {
     pub maps: Vec<Map>,
-    pub link_map_selection: Vec<Rect>,
-    pub selection_preview: Rect,
+    pub link_map_selection: Vec<usize>,
+    pub selection_preview: usize,
     preview_pos: Vec2,
     preview_size: Vec2,
 
     pub map_attributes: Vec<MapAttributes>,
-    pub map_zone: Vec<Rect>,
+    pub map_zone: Vec<usize>,
     pub map_zone_loc: [MapZone; 5],
     pub map_zone_setting: [MapZoneSetting; 5],
     pub fixed_weather: u8,
@@ -109,17 +110,18 @@ impl MapView {
                     .set_color(Color::rgba(0, 0, 0, 130))
                     .set_use_camera(true);
             
-            link_map_selection.push(image);
+            link_map_selection.push(systems.gfx.add_rect(image, 0));
         }
 
         // This will create the selection box on the map view
-        let mut selection_preview = Rect::new(&mut systems.renderer, 0);
-        selection_preview.set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
+        let mut selectionpreview = Rect::new(&mut systems.renderer, 0);
+        selectionpreview.set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
                         .set_position(Vec3::new(maps[0].pos.x, maps[0].pos.y, ORDER_MAP_SELECTION))
                         .set_color(Color::rgba(config_data.map_selection_color[0], 
                                                 config_data.map_selection_color[1], 
                                                 config_data.map_selection_color[2], 150))
                         .set_use_camera(true);
+        let selection_preview = systems.gfx.add_rect(selectionpreview, 0);
 
         // Map Attributes & Map Zones
         let mut map_attributes = Vec::with_capacity(1024);
@@ -128,18 +130,23 @@ impl MapView {
             let pos = Vec2::new(maps[0].pos.x + ((i % 32) * TEXTURE_SIZE) as f32,
                                     maps[0].pos.y + ((i / 32) * TEXTURE_SIZE) as f32);
             // BG
-            let mut image = Rect::new(&mut systems.renderer, 0);
-            image.set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
+            let mut img = Rect::new(&mut systems.renderer, 0);
+            img.set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
                 .set_position(Vec3::new(pos.x, pos.y, ORDER_MAP_ATTRIBUTE_BG))
                 .set_color(Color::rgba(0,0,0,0))
                 .set_use_camera(true);
 
             // Text
             let label_size = Vec2::new(32.0, 32.0);
-            let text = create_basic_label(systems,
+            let txt = create_basic_label(systems,
                     Vec3::new(pos.x, pos.y - 13.0, ORDER_MAP_ATTRIBUTE_TEXT),
                     label_size,
                     Color::rgba(255,255,255,255));
+
+            let (image, text) = (systems.gfx.add_rect(img, 0),
+                                            systems.gfx.add_text(txt, 1));
+            systems.gfx.set_visible(image, false);
+            systems.gfx.set_visible(text, false);
 
             map_attributes.push(MapAttributes {
                 pos,
@@ -154,7 +161,7 @@ impl MapView {
                 .set_position(Vec3::new(pos.x, pos.y, ORDER_MAP_ZONE))
                 .set_color(Color::rgba(0,0,0,0))
                 .set_use_camera(true);
-            map_zone.push(zone_box);
+            map_zone.push(systems.gfx.add_rect(zone_box, 0));
         }
         
 
@@ -174,32 +181,34 @@ impl MapView {
     }
 
     // This function create an effect when we are hovering on the linked map
-    pub fn hover_linked_selection(&mut self, pos: Vec2) -> Option<usize> {
+    pub fn hover_linked_selection(&mut self, systems: &mut DrawSetting, pos: Vec2) -> Option<usize> {
         let mut result = None;
         for (index, selection) in self.link_map_selection.iter_mut().enumerate() {
+            let (position, size, color) = 
+                (systems.gfx.get_pos(*selection),
+                systems.gfx.get_size(*selection), 
+                systems.gfx.get_color(*selection));
             let is_within_pos =
-                pos.x >= selection.position.x
-                    && pos.x <= selection.position.x + selection.size.x
-                    && pos.y >= selection.position.y
-                    && pos.y <= selection.position.y + selection.size.y as f32;
+                pos.x >= position.x
+                    && pos.x <= position.x + size.x
+                    && pos.y >= position.y
+                    && pos.y <= position.y + size.y as f32;
     
             if is_within_pos {
-                if selection.color != Color::rgba(0, 0, 0, 0) {
-                    selection.color = Color::rgba(0, 0, 0, 0);
-                    selection.changed = true;
+                if color != Color::rgba(0, 0, 0, 0) {
+                    systems.gfx.set_color(*selection, Color::rgba(0, 0, 0, 0));
                 }
                 result = Some(index);
             } else {
-                if selection.color != Color::rgba(0, 0, 0, 130) {
-                    selection.color = Color::rgba(0, 0, 0, 130);
-                    selection.changed = true;
+                if color != Color::rgba(0, 0, 0, 130) {
+                    systems.gfx.set_color(*selection, Color::rgba(0, 0, 0, 130));
                 }
             }
         }
         result
     }
 
-    pub fn set_attribute(&mut self, renderer: &mut GpuRenderer, set_pos: Vec2, attributes: MapAttribute) {
+    pub fn set_attribute(&mut self, systems: &mut DrawSetting, set_pos: Vec2, attributes: MapAttribute) {
         let tilepos = get_tile_pos(set_pos.x as i32, set_pos.y as i32);
 
         // Record change for undo purpose
@@ -218,7 +227,7 @@ impl MapView {
         };
         self.record.push_undo(Vec3::new(set_pos.x, set_pos.y, 0.0), RecordType::RecordAttribute, last_attribute_num as i64, data);
         
-        self.map_attributes[tilepos].set_attribute(renderer, attributes);
+        self.map_attributes[tilepos].set_attribute(systems, attributes);
     }
 
     pub fn get_attribute(&mut self, pos: Vec2) -> MapAttribute {
@@ -226,7 +235,7 @@ impl MapView {
         self.map_attributes[tilepos].attribute.clone()
     }
 
-    pub fn set_attribute_fill(&mut self, renderer: &mut GpuRenderer, set_pos: Vec2, attribute: MapAttribute) {
+    pub fn set_attribute_fill(&mut self, systems: &mut DrawSetting, set_pos: Vec2, attribute: MapAttribute) {
         let tilepos = get_tile_pos(set_pos.x as i32, set_pos.y as i32);
 
         // We will only change the tiles that have a similar texture id, and this will be use to check
@@ -261,7 +270,7 @@ impl MapView {
 
             // Paint the map
             let tile_pos = get_tile_pos(pos.x as i32, pos.y as i32);
-            self.map_attributes[tile_pos].set_attribute(renderer, attribute.clone());
+            self.map_attributes[tile_pos].set_attribute(systems, attribute.clone());
 
             // Check direction
             for dir in 0..4 {
@@ -385,31 +394,31 @@ impl MapView {
         }
     }
 
-    pub fn update_map_zone(&mut self, zone_index: usize) {
+    pub fn update_map_zone(&mut self, systems: &mut DrawSetting, zone_index: usize) {
         // Clear all
         self.map_zone.iter_mut().for_each(|zone| {
-            zone.set_color(Color::rgba(0,0,0,0));
+            systems.gfx.set_color(*zone, Color::rgba(0,0,0,0));
         });
         // Add the selected zone
         for data in self.map_zone_loc[zone_index].pos.iter() {
             let tilenum = get_tile_pos(data.x as i32, data.y as i32);
-            self.map_zone[tilenum].set_color(get_zone_color(zone_index));
+            systems.gfx.set_color(self.map_zone[tilenum], get_zone_color(zone_index));
         }
     }
 
-    pub fn add_map_zone(&mut self, zone_index: usize, pos: Vec2) {
+    pub fn add_map_zone(&mut self, systems: &mut DrawSetting, zone_index: usize, pos: Vec2) {
         // Record change for undo purpose
         let does_exist = if self.map_zone_loc[zone_index].pos.iter().any(|&check_pos| check_pos == pos) { 1 } else { 0 };
         self.record.push_undo(Vec3::new(pos.x, pos.y, zone_index as f32), RecordType::RecordZone, does_exist, vec![]);
 
         let tilenum = get_tile_pos(pos.x as i32, pos.y as i32);
-        self.map_zone[tilenum].set_color(get_zone_color(zone_index));
+        systems.gfx.set_color(self.map_zone[tilenum], get_zone_color(zone_index));
         if !self.map_zone_loc[zone_index].pos.iter().any(|&check_pos| check_pos == pos) {
             self.map_zone_loc[zone_index].pos.push(pos);
         }
     }
 
-    pub fn set_zone_fill(&mut self, set_pos: Vec2, zone_index: usize) {
+    pub fn set_zone_fill(&mut self, systems: &mut DrawSetting, set_pos: Vec2, zone_index: usize) {
         // Fill only empty area
         if self.map_zone_loc[zone_index].pos.iter().any(|&check_pos| check_pos == set_pos) {
             return;
@@ -429,7 +438,7 @@ impl MapView {
             
             // Paint the map
             let tilenum = get_tile_pos(pos.x as i32, pos.y as i32);
-            self.map_zone[tilenum].set_color(get_zone_color(zone_index));
+            systems.gfx.set_color(self.map_zone[tilenum], get_zone_color(zone_index));
             if !self.map_zone_loc[zone_index].pos.iter().any(|&check_pos| check_pos == pos) {
                 self.map_zone_loc[zone_index].pos.push(pos);
             }
@@ -456,31 +465,30 @@ impl MapView {
         }
     }
 
-    pub fn delete_map_zone(&mut self, zone_index: usize, pos: Vec2) {
+    pub fn delete_map_zone(&mut self, systems: &mut DrawSetting, zone_index: usize, pos: Vec2) {
         // Record change for undo purpose
         let does_exist = if self.map_zone_loc[zone_index].pos.iter().any(|&check_pos| check_pos == pos) { 1 } else { 0 };
         self.record.push_undo(Vec3::new(pos.x, pos.y, zone_index as f32), RecordType::RecordZone, does_exist, vec![]);
 
         let tilenum = get_tile_pos(pos.x as i32, pos.y as i32);
-        self.map_zone[tilenum].set_color(Color::rgba(0, 0, 0, 0));
+        systems.gfx.set_color(self.map_zone[tilenum], Color::rgba(0, 0, 0, 0));
         self.map_zone_loc[zone_index].pos.retain(|&check_pos| check_pos != pos);
     }
 
-    pub fn hover_selection_preview(&mut self, set_pos: Vec2) {
+    pub fn hover_selection_preview(&mut self, systems: &mut DrawSetting, set_pos: Vec2) {
         if self.preview_pos != set_pos && set_pos.x < 32.0 && set_pos.y < 32.0 {
             self.preview_pos = set_pos;
-            self.selection_preview.set_position(Vec3::new(self.maps[0].pos.x + set_pos.x * TEXTURE_SIZE as f32, 
-                                                        self.maps[0].pos.y + set_pos.y * TEXTURE_SIZE as f32, 
-                                                        ORDER_MAP_SELECTION));
-            self.adjust_selection_preview();
-            self.selection_preview.changed = true;
+            systems.gfx.set_pos(self.selection_preview,
+                Vec3::new(self.maps[0].pos.x + set_pos.x * TEXTURE_SIZE as f32, 
+                    self.maps[0].pos.y + set_pos.y * TEXTURE_SIZE as f32, 
+                    ORDER_MAP_SELECTION));
+            self.adjust_selection_preview(systems);
         }
     }
     
-    pub fn change_selection_preview_size(&mut self, size: Vec2) {
+    pub fn change_selection_preview_size(&mut self, systems: &mut DrawSetting, size: Vec2) {
         self.preview_size = size;
-        self.adjust_selection_preview();
-        self.selection_preview.changed = true;
+        self.adjust_selection_preview(systems);
     }
 
     pub fn clear_map(&mut self, index: usize) {
@@ -494,7 +502,7 @@ impl MapView {
     }
 
     // This function ensure that the selection preview does not show outside the map boundary
-    fn adjust_selection_preview(&mut self) {
+    fn adjust_selection_preview(&mut self, systems: &mut DrawSetting) {
         let max_size = Vec2::new(32.0, 32.0);
     
         let clamped_x = (self.preview_pos.x + self.preview_size.x).min(max_size.x);
@@ -502,11 +510,12 @@ impl MapView {
 
         let new_size = Vec2::new(clamped_x - self.preview_pos.x, clamped_y - self.preview_pos.y);
 
-        self.selection_preview.set_size(Vec2::new(new_size.x * TEXTURE_SIZE as f32, 
-                                                    new_size.y * TEXTURE_SIZE as f32));
+        systems.gfx.set_size(self.selection_preview,
+            Vec2::new(new_size.x * TEXTURE_SIZE as f32, 
+                new_size.y * TEXTURE_SIZE as f32));
     }
 
-    pub fn apply_change(&mut self, renderer: &mut GpuRenderer, is_undo: bool) {
+    pub fn apply_change(&mut self, systems: &mut DrawSetting, is_undo: bool) {
         let record_list = if is_undo { &self.record.undo } else { &self.record.redo };
         if record_list.is_empty() {
             return;
@@ -567,7 +576,7 @@ impl MapView {
     
                         let attribute_enum = MapAttribute::convert_to_enum(changedata.id as u32, &changedata.data);
                         let tilenum = get_tile_pos(pos.x as i32, pos.y as i32);
-                        self.map_attributes[tilenum].set_attribute(renderer, attribute_enum);
+                        self.map_attributes[tilenum].set_attribute(systems, attribute_enum);
                     },
                     RecordType::RecordZone => {
                         // We will use the pos.z for the selected zone index
@@ -582,12 +591,12 @@ impl MapView {
 
                         let tilenum = get_tile_pos(pos.x as i32, pos.y as i32);
                         if changedata.id > 0 { // Exist, add zone
-                            self.map_zone[tilenum].set_color(get_zone_color(zone_index));
+                            systems.gfx.set_color(self.map_zone[tilenum], get_zone_color(zone_index));
                             if !self.map_zone_loc[zone_index].pos.iter().any(|&check_pos| check_pos == Vec2::new(pos.x, pos.y)) {
                                 self.map_zone_loc[zone_index].pos.push(Vec2::new(pos.x, pos.y));
                             }
                         } else { // Does not exist, remove zone
-                            self.map_zone[tilenum].set_color(Color::rgba(0, 0, 0, 0));
+                            systems.gfx.set_color(self.map_zone[tilenum], Color::rgba(0, 0, 0, 0));
                             self.map_zone_loc[zone_index].pos.retain(|&check_pos| check_pos != Vec2::new(pos.x, pos.y));
                         }
                     },

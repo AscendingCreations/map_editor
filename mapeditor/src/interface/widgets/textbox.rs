@@ -9,8 +9,8 @@ use graphics::*;
 use crate::DrawSetting;
 
 pub struct Textbox {
-    pub image: Rect,
-    pub text: Text,
+    pub image: usize,
+    pub text: usize,
     pub data: String,
     pub is_selected: bool,
 }
@@ -19,31 +19,34 @@ impl Textbox {
     pub fn new(systems: &mut DrawSetting, 
                 textbox_pos: Vec3, 
                 textbox_size: Vec2,
-                can_wrap: bool) -> Self 
+                can_wrap: bool,
+                render_layer: [usize; 2]) -> Self 
 {
-        let mut image = Rect::new(&mut systems.renderer, 0);
-        image.set_size(textbox_size)
+        let mut img = Rect::new(&mut systems.renderer, 0);
+        img.set_size(textbox_size)
             .set_position(textbox_pos)
             .set_border_color(Color::rgba(80, 80, 80, 255))
             .set_border_width(1.0)
             .set_color(Color::rgba(80,80,80,255))
             .set_use_camera(true);
+        let image = systems.gfx.add_rect(img, render_layer[0]);
         
-        let mut text = Text::new(
+        let mut txt = Text::new(
             &mut systems.renderer,
             Some(Metrics::new(16.0, 16.0).scale(systems.scale as f32)),
             Vec3::new(textbox_pos.x + 2.0, textbox_pos.y - 2.0, textbox_pos.z), textbox_size, 1.0
         );
-        text.set_buffer_size(&mut systems.renderer, textbox_size.x as i32, systems.size.height as i32)
+        txt.set_buffer_size(&mut systems.renderer, textbox_size.x as i32, systems.size.height as i32)
             .set_bounds(Some(Bounds::new(textbox_pos.x, textbox_pos.y, 
                                         textbox_pos.x + textbox_size.x, textbox_pos.y + textbox_size.y)))
             .set_default_color(Color::rgba(200, 200, 200, 255))
             .set_text(&mut systems.renderer, "", Attrs::new());
-        text.use_camera = true;
-        text.changed = true;
+        txt.use_camera = true;
+        txt.changed = true;
         if can_wrap {
-            text.set_wrap(&mut systems.renderer, cosmic_text::Wrap::Word);
+            txt.set_wrap(&mut systems.renderer, cosmic_text::Wrap::Word);
         }
+        let text = systems.gfx.add_text(txt, render_layer[1]);
         
         Self {
             image,
@@ -53,13 +56,13 @@ impl Textbox {
         }
     }
 
-    pub fn input_text(&mut self, renderer: &mut GpuRenderer, text: String) {
+    pub fn input_text(&mut self, systems: &mut DrawSetting, text: String) {
         self.data.clear();
         self.data.push_str(&text);
-        self.text.set_text(renderer, &self.data, Attrs::new());
+        systems.gfx.set_text(&mut systems.renderer, self.text, &self.data);
     }
 
-    pub fn enter_numeric(&mut self, renderer: &mut GpuRenderer, event: &KeyEvent, limit: usize, can_be_negative: bool) {
+    pub fn enter_numeric(&mut self, systems: &mut DrawSetting, event: &KeyEvent, limit: usize, can_be_negative: bool) {
         if !event.state.is_pressed() || !self.is_selected {
             return;
         }
@@ -85,11 +88,10 @@ impl Textbox {
                 }
             }
         }
-
-        self.text.set_text(renderer, &self.data, Attrs::new());
+        systems.gfx.set_text(&mut systems.renderer, self.text, &self.data);
     }
 
-    pub fn enter_text(&mut self, renderer: &mut GpuRenderer, event: &KeyEvent, limit: usize) {
+    pub fn enter_text(&mut self, systems: &mut DrawSetting, event: &KeyEvent, limit: usize) {
         if !event.state.is_pressed() || !self.is_selected {
             return;
         }
@@ -108,20 +110,23 @@ impl Textbox {
                 }
             }
         }
-
-        self.text.set_text(renderer, &self.data, Attrs::new());
+        systems.gfx.set_text(&mut systems.renderer, self.text, &self.data);
     }
 
-    pub fn set_select(&mut self, is_select: bool) {
+    pub fn set_select(&mut self, systems: &mut DrawSetting, is_select: bool) {
         if self.is_selected == is_select {
             return;
         }
         self.is_selected = is_select;
         if self.is_selected {
-            self.image.set_border_color(Color::rgba(180,180,180,255));
+            systems.gfx.set_border_color(self.image, Color::rgba(180,180,180,255));
         } else {
-            self.image.set_border_color(Color::rgba(80,80,80,255));
+            systems.gfx.set_border_color(self.image, Color::rgba(80,80,80,255));
         }
+    }
+
+    pub fn set_visible(&mut self, systems: &mut DrawSetting, visible: bool) {
+        systems.gfx.set_visible(self.image, visible);
     }
 }
 

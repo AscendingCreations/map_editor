@@ -1,5 +1,7 @@
 use graphics::*;
 
+use crate::DrawSetting;
+
 #[derive(PartialEq, Eq)]
 pub enum ButtonState {
     Normal,
@@ -8,48 +10,56 @@ pub enum ButtonState {
 
 pub struct ToolButton {
     pub index: usize,
-    pub image: Image,
+    pub image: usize,
     pub state: ButtonState,
     pub in_hover: bool,
     pub in_click: bool,
 }
 
 impl ToolButton {
-    pub fn set_state(&mut self, state: ButtonState) {
+    pub fn set_state(&mut self, systems: &mut DrawSetting, state: ButtonState) {
         if self.state != state {
             self.state = state;
+            let mut uv = systems.gfx.get_uv(self.image);
+            let size = systems.gfx.get_size(self.image);
             match self.state {
-                ButtonState::Normal => { self.image.uv.y = 0.0; }
-                ButtonState::Selected => { self.image.uv.y = self.image.hw.y * 2.0; },
+                ButtonState::Normal => { uv.y = 0.0; }
+                ButtonState::Selected => { uv.y = size.y * 2.0; },
             }
-            self.image.changed = true;
+            systems.gfx.set_uv(self.image, uv);
         }
     }
 
-    pub fn set_hover(&mut self, hover: bool) {
+    pub fn set_hover(&mut self, systems: &mut DrawSetting, hover: bool) {
         if self.in_hover != hover {
             self.in_hover = hover;
             if self.state == ButtonState::Normal {
+                let mut uv = systems.gfx.get_uv(self.image);
+                let size = systems.gfx.get_size(self.image);
+
                 if self.in_hover {
-                    self.image.uv.y = self.image.hw.y;
+                    uv.y = size.y;
                 } else {
-                    self.image.uv.y = 0.0;
+                    uv.y = 0.0;
                 }
-                self.image.changed = true;
+                systems.gfx.set_uv(self.image, uv);
             }
         }
     }
 
-    pub fn set_click(&mut self, click: bool) {
+    pub fn set_click(&mut self, systems: &mut DrawSetting, click: bool) {
         if self.in_click != click {
             self.in_click = click;
             if self.state == ButtonState::Normal {
+                let mut uv = systems.gfx.get_uv(self.image);
+                let size = systems.gfx.get_size(self.image);
+
                 if self.in_click {
-                    self.image.uv.y = self.image.hw.y * 2.0;
+                    uv.y = size.y * 2.0;
                 } else {
-                    self.image.uv.y = self.image.hw.y;
+                    uv.y = size.y;
                 }
-                self.image.changed = true;
+                systems.gfx.set_uv(self.image, uv);
             }
         }
     }

@@ -23,25 +23,23 @@ pub fn tileset_input(
                     gameinput.tileset_start = tile_map_pos.clone();
                     gameinput.tileset_end = tile_map_pos.clone();
                     gameinput.selected_size = tileset.set_selection(
+                        systems,
                         gameinput.tileset_start,
                         gameinput.tileset_end,
                     );
-                    mapview
-                        .change_selection_preview_size(gameinput.selected_size);
+                    mapview.change_selection_preview_size(systems, gameinput.selected_size);
                     gameinput.presstype = PressType::PressTileset;
                 }
 
                 // Tileset List
-                if gui.tileset_list.select_list(screen_pos) {
+                if gui.tileset_list.select_list(systems, screen_pos) {
                     // This will process the switching of tileset
                     let tileset_index = gui.tileset_list.selected_tileset;
-                    gui.labels[LABEL_TILESET].set_text(
-                        &mut systems.renderer,
-                        &systems.resource.tilesheet[tileset_index].name,
-                        Attrs::new(),
-                    );
+                    systems.gfx.set_text(&mut systems.renderer, 
+                        gui.labels[LABEL_TILESET], 
+                        &systems.resource.tilesheet[tileset_index].name);
                     tileset.change_tileset(&mut systems.resource, tileset_index);
-                    gui.tileset_list.hide();
+                    gui.tileset_list.hide(systems);
                 }
             }
         }
@@ -60,32 +58,31 @@ pub fn tileset_input(
                     if gameinput.tileset_end != tile_map_pos {
                         gameinput.tileset_end = tile_map_pos;
                         gameinput.selected_size = tileset.set_selection(
+                            systems,
                             gameinput.tileset_start,
                             gameinput.tileset_end,
                         );
-                        mapview.change_selection_preview_size(
-                            gameinput.selected_size,
-                        );
+                        mapview.change_selection_preview_size(systems, gameinput.selected_size);
                     }
                 }
             } else if gui.tileset_list.scrollbar.in_hold {
                 // Update our tileset list based on the scrollbar value
-                gui.tileset_list.scrollbar.move_scrollbar(screen_pos.y, false);
+                gui.tileset_list.scrollbar.move_scrollbar(systems, screen_pos.y, false);
                 if gui
                     .tileset_list
                     .update_scroll(gui.tileset_list.scrollbar.cur_value)
                 {
-                    gui.tileset_list.update_list(&mut systems.renderer, &systems.resource);
+                    gui.tileset_list.update_list(systems);
                 }
-                gui.tileset_list.scrollbar.set_hover(screen_pos);
+                gui.tileset_list.scrollbar.set_hover(systems, screen_pos);
             }
         }
         InputType::MouseMove => {
-            gui.tileset_list.hover_selection(screen_pos);
-            gui.tileset_list.scrollbar.set_hover(screen_pos);
+            gui.tileset_list.hover_selection(systems, screen_pos);
+            gui.tileset_list.scrollbar.set_hover(systems, screen_pos);
         }
         InputType::MouseRelease => {
-            gui.tileset_list.scrollbar.release_scrollbar();
+            gui.tileset_list.scrollbar.release_scrollbar(systems);
         },
     }
 }

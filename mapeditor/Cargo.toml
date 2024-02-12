@@ -31,3 +31,4 @@ ubits.workspace = true
 hecs.workspace = true
 glam.workspace = true
 indexmap.workspace = true
+slab.workspace = true

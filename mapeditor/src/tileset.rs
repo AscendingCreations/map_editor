@@ -12,7 +12,7 @@ pub const MAX_TILE_Y: u32 = 20;
 pub struct Tileset {
     pub map: Map,
     pub selected_tile: usize,
-    pub selection: Rect,
+    pub selection: usize,
     pub select_start: Vec2,
     pub select_size: Vec2,
 }
@@ -22,16 +22,10 @@ impl Tileset {
         systems: &mut DrawSetting,
         config_data: &mut ConfigData,
     ) -> Self {
-        let mut tilesheet = Tileset {
-            map: Map::new(&mut systems.renderer, TEXTURE_SIZE),
-            selected_tile: 0,
-            selection: Rect::new(&mut systems.renderer, 0),
-            select_start: Vec2::new(0.0, (MAX_TILE_Y - 1) as f32),
-            select_size: Vec2::new(1.0, 1.0),
-        };
+        let mut map = Map::new(&mut systems.renderer, TEXTURE_SIZE);
 
         // Loop throughout all texture and place them on the map based on their texture location
-        for tiledata in &systems.resource.tilesheet[tilesheet.selected_tile].tile.tiles
+        for tiledata in &systems.resource.tilesheet[0].tile.tiles
         {
             let (id, x, y) = (
                 tiledata.tex_id,
@@ -40,7 +34,7 @@ impl Tileset {
             );
             // We make sure that we only set those that are not empty tile
             if id > 0 {
-                tilesheet.map.set_tile(
+                map.set_tile(
                     (x, y, 0),
                     TileData {
                         id,
@@ -50,13 +44,14 @@ impl Tileset {
             }
         }
         // Adjust tileset position on interface
-        tilesheet.map.pos = Vec2::new(11.0, 369.0);
-        tilesheet.map.can_render = true;
+        map.pos = Vec2::new(11.0, 369.0);
+        map.can_render = true;
 
         // Setup tile selection image settings
         // We set the selected tile at the very first tile
-        tilesheet.selection.set_position(Vec3::new(tilesheet.map.pos.x,
-                                                tilesheet.map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32,
+        let mut tileselection = Rect::new(&mut systems.renderer, 0);
+        tileselection.set_position(Vec3::new(map.pos.x,
+                                                map.pos.y + ((MAX_TILE_Y - 1) * TEXTURE_SIZE) as f32,
                                                 ORDER_TILESET_SELECTION))
                             .set_size(Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32))
                             .set_color(Color::rgba(config_data.tile_selection_color[0], 
@@ -64,10 +59,16 @@ impl Tileset {
                                                     config_data.tile_selection_color[2], 150))
                             .set_use_camera(true);
 
-        tilesheet
+        Tileset {
+            map,
+            selected_tile: 0,
+            selection: systems.gfx.add_rect(tileselection, 0),
+            select_start: Vec2::new(0.0, (MAX_TILE_Y - 1) as f32),
+            select_size: Vec2::new(1.0, 1.0),
+        }
     }
 
-    pub fn set_selection(&mut self, start: Vec2, end: Vec2) -> Vec2 {
+    pub fn set_selection(&mut self, systems: &mut DrawSetting, start: Vec2, end: Vec2) -> Vec2 {
         // Let's arrange the start pos and end pos to make sure start pos consist the smallest value
         let start_pos = Vec2::new(
             if start.x > end.x { end.x } else { start.x },
@@ -83,13 +84,14 @@ impl Tileset {
         self.select_size = (end_pos - start_pos) + 1.0;
 
         // Adjust selection position and size
-        self.selection.set_position(Vec3::new(
-            self.map.pos.x + (start_pos.x * TEXTURE_SIZE as f32),
-            self.map.pos.y + (start_pos.y * TEXTURE_SIZE as f32),
-            4.0
-        ));
-        self.selection.set_size(self.select_size * TEXTURE_SIZE as f32);
-        self.selection.changed = true;
+        systems.gfx.set_pos(self.selection, 
+            Vec3::new(
+                self.map.pos.x + (start_pos.x * TEXTURE_SIZE as f32),
+                self.map.pos.y + (start_pos.y * TEXTURE_SIZE as f32),
+                4.0
+            ));
+        systems.gfx.set_size(self.selection, 
+            self.select_size * TEXTURE_SIZE as f32);
 
         self.select_size
     }

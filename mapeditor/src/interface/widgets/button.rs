@@ -8,8 +8,8 @@ use crate::{
 };
 
 pub struct Button {
-    pub image: Image,
-    pub text: Text,
+    pub image: usize,
+    pub text: usize,
     in_hover: bool,
     in_click: bool,
     button_size: Vec2,
@@ -24,23 +24,26 @@ impl Button {
                 button_size: Vec2,
                 z_order: [f32; 2],
                 adjust_text_y: f32,
+                render_layer: [usize; 2]
     ) -> Self {
-        let mut image = Image::new(Some(texture), &mut systems.renderer, 1);
-        image.pos = Vec3::new(pos.x, pos.y, z_order[0]);
-        image.hw = button_size;
-        image.uv = Vec4::new(0.0, 0.0, button_size.x, button_size.y);
+        let mut img = Image::new(Some(texture), &mut systems.renderer, 1);
+        img.pos = Vec3::new(pos.x, pos.y, z_order[0]);
+        img.hw = button_size;
+        img.uv = Vec4::new(0.0, 0.0, button_size.x, button_size.y);
+        let image = systems.gfx.add_image(img, render_layer[0]);
 
         let adjust_x = (button_size.x * 0.5).floor() - (button_size.x * 0.5).floor();
-        let mut text = create_label(systems,
+        let mut txt = create_label(systems,
             Vec3::new(pos.x + adjust_x, pos.y + adjust_text_y, z_order[1]), 
             Vec2::new(button_size.x, 20.0),
             Bounds::new(pos.x, pos.y + adjust_text_y, pos.x + button_size.x, pos.y + button_size.y),
             Color::rgba(120, 120, 120, 255));
-        text.set_text(&mut systems.renderer, message, Attrs::new());
+        txt.set_text(&mut systems.renderer, message, Attrs::new());
         // Adjust text x position
-        let message_size = text.measure();
-        text.pos.x =  pos.x + ((button_size.x * 0.5).floor() - (message_size.x * 0.5)).floor();
-        text.changed = true;
+        let message_size = txt.measure();
+        txt.pos.x =  pos.x + ((button_size.x * 0.5).floor() - (message_size.x * 0.5)).floor();
+        txt.changed = true;
+        let text = systems.gfx.add_text(txt, render_layer[1]);
 
         Self {
             image,
@@ -52,38 +55,49 @@ impl Button {
         }
     }
 
-    pub fn set_hover(&mut self, in_hover: bool) {
+    pub fn set_hover(&mut self, systems: &mut DrawSetting, in_hover: bool) {
         if self.in_hover == in_hover {
             return;
         }
         self.in_hover = in_hover;
         if !self.in_click {
+            let mut uv = systems.gfx.get_uv(self.image);
             if self.in_hover {
-                self.image.uv.y = self.button_size.y;
+                uv.y = self.button_size.y;
             } else {
-                self.image.uv.y = 0.0;
+                uv.y = 0.0;
             }
-            self.image.changed = true;
+            systems.gfx.set_uv(self.image, uv);
         }
     }
 
-    pub fn set_click(&mut self, in_click: bool) {
+    pub fn set_click(&mut self, systems: &mut DrawSetting, in_click: bool) {
         if self.in_click == in_click {
             return;
         }
         self.in_click = in_click;
         if self.in_click {
-            self.image.uv.y = self.button_size.y * 2.0;
-            self.text.pos.y = self.image.pos.y + (self.adjust_text_y - 2.0);
+            let (mut txtpos, imgpos, mut uv) = 
+                (systems.gfx.get_pos(self.text),
+                systems.gfx.get_pos(self.image), 
+                systems.gfx.get_uv(self.image));
+            uv.y = self.button_size.y * 2.0;
+            txtpos.y = imgpos.y + (self.adjust_text_y - 2.0);
+            systems.gfx.set_uv(self.image, uv);
+            systems.gfx.set_pos(self.text, txtpos);
         } else {
+            let (mut txtpos, imgpos, mut uv) = 
+                (systems.gfx.get_pos(self.text),
+                systems.gfx.get_pos(self.image), 
+                systems.gfx.get_uv(self.image));
             if !self.in_hover {
-                self.image.uv.y = 0.0;
+                uv.y = 0.0;
             } else {
-                self.image.uv.y = self.button_size.y;
+                uv.y = self.button_size.y;
             }
-            self.text.pos.y = self.image.pos.y + self.adjust_text_y;
+            txtpos.y = imgpos.y + self.adjust_text_y;
+            systems.gfx.set_uv(self.image, uv);
+            systems.gfx.set_pos(self.text, txtpos);
         }
-        self.image.changed = true;
-        self.text.changed = true;
     }
 }

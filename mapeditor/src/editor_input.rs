@@ -24,7 +24,8 @@ use crate::{
     map::*,
     map_data::*,
     tileset::*,
-    DrawSetting
+    DrawSetting,
+    gfx_collection::*,
 };
 
 pub enum InputType {
@@ -158,12 +159,12 @@ pub fn handle_key_input(
     systems: &mut DrawSetting,
 ) -> bool {
     if gui.preference.is_open {
-        preference_key_input(&mut systems.renderer, event, gui);
+        preference_key_input(systems, event, gui);
         return true;
     }
 
     if let Some(dialog) = &mut gui.dialog {
-        dialog_key_input(&mut systems.renderer, event, dialog);
+        dialog_key_input(systems, event, dialog);
         return true;
     }
 
@@ -250,7 +251,7 @@ pub fn gui_button_select(button_index: usize,
         TOOL_LOAD => {
             if gui.preference.is_open {
                 config_data.set_data(load_config());
-                gui.preference.close();
+                gui.preference.close(systems);
             }
             gui.open_dialog(
                 systems,
@@ -263,26 +264,26 @@ pub fn gui_button_select(button_index: usize,
             update_map_name(systems, gui, database);
         }
         TOOL_UNDO => {
-            mapview.apply_change(&mut systems.renderer, true);
+            mapview.apply_change(systems, true);
         }
         TOOL_REDO => {
-            mapview.apply_change(&mut systems.renderer, false);
+            mapview.apply_change(systems, false);
         }
         TOOL_DRAW | TOOL_ERASE | TOOL_FILL | TOOL_EYEDROP => {
-            gui.set_tool(button_index);
+            gui.set_tool(systems, button_index);
         }
         TAB_ATTRIBUTE | TAB_LAYER | TAB_PROPERTIES | TAB_ZONE => {
             set_tab(systems, gui, button_index, mapview, tileset, gameinput);
             if gui.tileset_list.visible {
-                gui.tileset_list.hide();
+                gui.tileset_list.hide(systems);
             }
         }
         BUTTON_TILESET => {
             if gui.current_tab == TAB_LAYER {
                 if gui.tileset_list.visible {
-                    gui.tileset_list.hide();
+                    gui.tileset_list.hide(systems);
                 } else {
-                    gui.tileset_list.show();
+                    gui.tileset_list.show(systems);
                 }
             }
         }
@@ -296,23 +297,19 @@ pub fn update_map_name(
     database: &EditorData,
 ) {
     if database.did_change(database.x, database.y, database.group) {
-        gui.labels[LABEL_MAPNAME].set_text(
-            &mut systems.renderer,
-            &format!(
-                "Map [ X: {} Y: {} Group: {} ] *",
-                database.x, database.y, database.group
-            ),
-            Attrs::new(),
-        );
+        systems.gfx.set_text(&mut systems.renderer, 
+                        gui.labels[LABEL_MAPNAME], 
+                        &format!(
+                            "Map [ X: {} Y: {} Group: {} ] *",
+                            database.x, database.y, database.group
+                        ));
     } else {
-        gui.labels[LABEL_MAPNAME].set_text(
-            &mut systems.renderer,
+        systems.gfx.set_text(&mut systems.renderer, 
+            gui.labels[LABEL_MAPNAME], 
             &format!(
                 "Map [ X: {} Y: {} Group: {} ]",
                 database.x, database.y, database.group
-            ),
-            Attrs::new(),
-        );
+            ));
     }
 }
 

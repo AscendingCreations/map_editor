@@ -33,6 +33,7 @@ mod editor_input;
 mod map;
 mod map_data;
 mod config;
+mod gfx_collection;
 
 use renderer::*;
 use interface::*;
@@ -46,6 +47,7 @@ use editor_input::{
 use map::*;
 use map_data::*;
 use config::*;
+use gfx_collection::*;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 enum Axis {
@@ -197,6 +199,7 @@ async fn main() -> Result<(), AscendingError> {
 
     // Compile all rendering data in one type for quick access and passing
     let mut systems = DrawSetting {
+        gfx: GfxCollection::new(),
         renderer,
         size,
         scale,
@@ -212,7 +215,7 @@ async fn main() -> Result<(), AscendingError> {
     let mut database = EditorData::new()?;
 
     // Load the initial map
-    database.load_map_data(&mut systems.renderer, &mut mapview);
+    database.load_map_data(&mut systems, &mut mapview);
     database.load_link_maps(&mut mapview);
 
     // setup our system which includes Camera and projection as well as our controls.
@@ -278,7 +281,7 @@ async fn main() -> Result<(), AscendingError> {
                         // Close preference window
                         if gui.preference.is_open {
                             config_data.set_data(load_config());
-                            gui.preference.close();
+                            gui.preference.close(&mut systems);
                         }
                         if database.got_changes() {
                             // We found changes on our map, we need to confirm if we would like to proceed to exit the editor
@@ -417,7 +420,6 @@ async fn main() -> Result<(), AscendingError> {
         // This adds the Image data to the Buffer for rendering.
         add_image_to_buffer(&mut systems,
                             &mut graphics,
-                            &mut config_data,
                             &mut mapview,
                             &mut gui,
                             &mut tileset,);
@@ -447,7 +449,7 @@ async fn main() -> Result<(), AscendingError> {
         systems.renderer.queue().submit(std::iter::once(encoder.finish()));
 
         if time < seconds {
-            gui.labels[LABEL_FPS].set_text(&mut systems.renderer, &format!("FPS: {fps}"), Attrs::new());
+            systems.gfx.set_text(&mut systems.renderer, gui.labels[LABEL_FPS], &format!("FPS: {fps}"));
             fps = 0u32;
             time = seconds + 1.0;
         }

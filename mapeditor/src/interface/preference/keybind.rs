@@ -44,8 +44,8 @@ impl EditorKey {
 }
 
 pub struct KeybindWindow {
-    pub window: Rect,
-    pub text: Text,
+    pub window: usize,
+    pub text: usize,
     pub is_open: bool,
     reset_button: bool,
     pub buttons: [Button; 2],
@@ -62,33 +62,42 @@ impl KeybindWindow {
         let window_size = Vec2::new(300.0, 100.0);
         let window_pos = Vec2::new(((systems.size.width / ZOOM_LEVEL) * 0.5) - (window_size.x * 0.5),
                 ((systems.size.height / ZOOM_LEVEL) * 0.5) - (window_size.y * 0.5)).floor();
-        let mut window = Rect::new(&mut systems.renderer, 0);
-        window.set_size(window_size)
+        let mut wndw = Rect::new(&mut systems.renderer, 0);
+        wndw.set_size(window_size)
             .set_position(Vec3::new(window_pos.x, window_pos.y, ORDER_KEYBIND_WINDOW))
             .set_radius(3.0)
             .set_border_color(Color::rgba(10, 10, 10, 255))
             .set_border_width(2.0)
             .set_color(Color::rgba(50,50,50,255))
             .set_use_camera(true);
+        let window = systems.gfx.add_rect(wndw, 4);
 
         // Text
         let text_pos = Vec3::new(window_pos.x, window_pos.y + window_size.y - 45.0, ORDER_KEYBIND_TEXT);
-        let mut text = create_basic_label(systems, text_pos, 
+        let mut txt = create_basic_label(systems, text_pos, 
                             Vec2::new(window_size.x, 20.0),
                             Color::rgba(180, 180, 180, 255));
-        text.set_text(&mut systems.renderer, "Please enter a Key", Attrs::new());
-        center_text(&mut text);
+        txt.set_text(&mut systems.renderer, "Please enter a Key", Attrs::new());
+        center_text(&mut txt);
+        let text = systems.gfx.add_text(txt, 5);
 
         // Buttons
         let button_x = window_pos.x + ((window_size.x * 0.5).floor() - 82.0);
-        let buttons = [
+        let mut buttons = [
             Button::new(systems, systems.resource.preference_button.allocation, "Cancel",
                         Vec2::new(button_x + 85.0, window_pos.y + 15.0), Vec2::new(80.0, 22.0),
-                        [ORDER_KEYBIND_BUTTON, ORDER_KEYBIND_BUTTON_TEXT], 2.0),
+                        [ORDER_KEYBIND_BUTTON, ORDER_KEYBIND_BUTTON_TEXT], 2.0, [2, 3]),
             Button::new(systems, systems.resource.preference_button.allocation, "Save",
                         Vec2::new(button_x, window_pos.y + 15.0), Vec2::new(80.0, 22.0),
-                        [ORDER_KEYBIND_BUTTON, ORDER_KEYBIND_BUTTON_TEXT], 2.0),
+                        [ORDER_KEYBIND_BUTTON, ORDER_KEYBIND_BUTTON_TEXT], 2.0, [2, 3]),
         ];
+
+        buttons.iter_mut().for_each(|button| {
+            systems.gfx.set_visible(button.image, false);
+            systems.gfx.set_visible(button.text, false);
+        });
+        systems.gfx.set_visible(window, false);
+        systems.gfx.set_visible(text, false);
 
         Self {
             window,
@@ -105,24 +114,30 @@ impl KeybindWindow {
 
     pub fn open_key(&mut self, systems: &mut DrawSetting, key_index: usize) {
         self.is_open = true;
-        self.window.changed = true;
-        self.text.changed = true;
+        systems.gfx.set_visible(self.window, true);
+        systems.gfx.set_visible(self.text, true);
         self.buttons.iter_mut().for_each(|button| {
-            button.image.changed = true;
-            button.text.changed = true;
+            systems.gfx.set_visible(button.image, true);
+            systems.gfx.set_visible(button.text, true);
         });
         self.key_code = None;
         self.key_modifier = [false; 3];
         self.key_index = key_index;
-        self.text.set_text(&mut systems.renderer, "Please enter a Key", Attrs::new());
-        center_text(&mut self.text);
+        systems.gfx.set_text(&mut systems.renderer, self.text, "Please enter a Key");
+        systems.gfx.center_text(self.text);
     }
 
-    pub fn close_key(&mut self) {
+    pub fn close_key(&mut self, systems: &mut DrawSetting) {
         self.is_open = false;
+        systems.gfx.set_visible(self.window, false);
+        systems.gfx.set_visible(self.text, false);
+        self.buttons.iter_mut().for_each(|button| {
+            systems.gfx.set_visible(button.image, false);
+            systems.gfx.set_visible(button.text, false);
+        });
     }
 
-    pub fn edit_key(&mut self, event: &KeyEvent, renderer: &mut GpuRenderer) {
+    pub fn edit_key(&mut self, event: &KeyEvent, systems: &mut DrawSetting) {
         match event.physical_key {
             PhysicalKey::Code(KeyCode::ControlLeft) | PhysicalKey::Code(KeyCode::ControlRight) => 
                 self.hold_key_modifier[0] = event.state.is_pressed(),
@@ -137,8 +152,8 @@ impl KeybindWindow {
 
                     if let Some(keycode) = self.key_code.clone() {
                         let button_text = get_key_name(keycode, self.key_modifier);
-                        self.text.set_text(renderer, &button_text, Attrs::new());
-                        center_text(&mut self.text);
+                        systems.gfx.set_text(&mut systems.renderer, self.text, &button_text);
+                        systems.gfx.center_text(self.text);
                     }
                 }
             },
@@ -151,45 +166,49 @@ impl KeybindWindow {
         }
     }
 
-    pub fn hover_buttons(&mut self, mouse_pos: Vec2) {
+    pub fn hover_buttons(&mut self, systems: &mut DrawSetting, mouse_pos: Vec2) {
         // We check if buttons are within the mouse position
         self.buttons.iter_mut().for_each(|button| {
-            if (mouse_pos.x) >= button.image.pos.x
-                && (mouse_pos.x) <= button.image.pos.x + button.image.hw.x
-                && (mouse_pos.y) >= button.image.pos.y
-                && (mouse_pos.y) <= button.image.pos.y + button.image.hw.y {
-                button.set_hover(true);
+            let (pos, size) = (systems.gfx.get_pos(button.image),
+                                    systems.gfx.get_size(button.image));
+            if (mouse_pos.x) >= pos.x
+                && (mouse_pos.x) <= pos.x + size.x
+                && (mouse_pos.y) >= pos.y
+                && (mouse_pos.y) <= pos.y + size.y {
+                button.set_hover(systems, true);
             } else {
-                button.set_hover(false);
+                button.set_hover(systems, false);
             }
         });
     }
 
     // This function should be called when the mouse button is not being pressed
     // This check if a button has been clicked, if yes, it will reset their click status
-    pub fn release_click(&mut self) {
+    pub fn release_click(&mut self, systems: &mut DrawSetting) {
         if !self.reset_button {
             return;
         }
         
         self.buttons.iter_mut().for_each(|button| {
-            button.set_click(false);
+            button.set_click(systems, false);
         });
     }
 
     // This function check which buttons are within the click position and return the button index
-    pub fn click_buttons(&mut self, mouse_pos: Vec2) -> Option<usize> {
+    pub fn click_buttons(&mut self, systems: &mut DrawSetting, mouse_pos: Vec2) -> Option<usize> {
         let mut found_button = None;
         for (index, button) in self.buttons.iter().enumerate() {
-            if (mouse_pos.x) >= button.image.pos.x
-                && (mouse_pos.x) <= button.image.pos.x + button.image.hw.x
-                && (mouse_pos.y) >= button.image.pos.y
-                && (mouse_pos.y) <= button.image.pos.y + button.image.hw.y {
+            let (pos, size) = (systems.gfx.get_pos(button.image),
+                                    systems.gfx.get_size(button.image));
+            if (mouse_pos.x) >= pos.x
+                && (mouse_pos.x) <= pos.x + size.x
+                && (mouse_pos.y) >= pos.y
+                && (mouse_pos.y) <= pos.y + size.y {
                 found_button = Some(index);
             }
         }
         if let Some(index) = found_button {
-            self.buttons[index].set_click(true);
+            self.buttons[index].set_click(systems, true);
             self.reset_button = true; // This remind us that a button has been clicked and needed to be reset
         }
         found_button

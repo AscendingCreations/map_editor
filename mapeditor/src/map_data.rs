@@ -205,7 +205,7 @@ impl EditorData {
         }
     }
     
-    pub fn load_map_data(&mut self, renderer: &mut GpuRenderer, map: &mut MapView) {
+    pub fn load_map_data(&mut self, systems: &mut DrawSetting, map: &mut MapView) {
         // Clear the map before we start adding the tiles
         map.clear_map(0);
         // Add the tiles
@@ -223,7 +223,7 @@ impl EditorData {
                                         });
                         }
                     });
-                    map.map_attributes[tile_num].set_attribute(renderer, mapdata.attribute[tile_num].clone());
+                    map.map_attributes[tile_num].set_attribute(systems, mapdata.attribute[tile_num].clone());
                 });
             });
             for i in 0..5 {

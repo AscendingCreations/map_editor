@@ -1,9 +1,8 @@
 use indexmap::IndexMap;
+use std::path::Path;
+
 use graphics::*;
 use crate::collection::TEXTURE_SIZE;
-
-// Modify this based on how many tilesheet image
-pub const MAX_TILESHEET: u32 = 4;
 
 pub struct TextureData {
     pub name: String,
@@ -148,26 +147,35 @@ impl TextureAllocation {
         };
 
         let mut tile_location = IndexMap::new();
-        let mut tilesheet = Vec::with_capacity(MAX_TILESHEET as usize);
-        for index in 0..MAX_TILESHEET {
-            let res = TilesheetData {
-                name: format!("tile_{}.png", index),
-                tile: Texture::from_file(format!(
-                    "images/tiles/tile_{}.png",
-                    index
-                ))?
-                .new_tilesheet(&mut atlases[1], &renderer, TEXTURE_SIZE)
-                .ok_or_else(|| OtherError::new("failed to upload tiles"))?,
-            };
+        let mut tilesheet = Vec::new();
+        let mut count = 0;
+        let mut path_found = true;
+        while path_found {
+            let path = format!("./images/tiles/tile_{}.png", count);
+            if Path::new(&path).exists() {
+                let res = TilesheetData {
+                    name: format!("tile_{}.png", count),
+                    tile: Texture::from_file(format!(
+                        "images/tiles/tile_{}.png",
+                        count
+                    ))?
+                    .new_tilesheet(&mut atlases[1], &renderer, TEXTURE_SIZE)
+                    .ok_or_else(|| OtherError::new("failed to upload tiles"))?,
+                };
 
-            // Store the tile location
-            for tile in &res.tile.tiles {
-                if tile.tex_id > 0 {
-                    tile_location.insert(tile.tex_id, (tile.x, tile.y, index));
+                // Store the tile location
+                for tile in &res.tile.tiles {
+                    if tile.tex_id > 0 {
+                        tile_location.insert(tile.tex_id, (tile.x, tile.y, count));
+                    }
                 }
-            }
 
-            tilesheet.push(res);
+                tilesheet.push(res);
+
+                count += 1;
+            } else {
+                path_found = false;
+            }
         }
 
         // Complete! We can now pass the result
