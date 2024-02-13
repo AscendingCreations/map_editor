@@ -77,7 +77,7 @@ impl KeybindWindow {
         let mut txt = create_basic_label(systems, text_pos, 
                             Vec2::new(window_size.x, 20.0),
                             Color::rgba(180, 180, 180, 255));
-        txt.set_text(&mut systems.renderer, "Please enter a Key", Attrs::new());
+        txt.set_text(&mut systems.renderer, "Please enter a Key", Attrs::new(), Shaping::Advanced,);
         center_text(&mut txt);
         let text = systems.gfx.add_text(txt, 5);
 

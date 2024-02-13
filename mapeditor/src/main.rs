@@ -18,7 +18,10 @@ use std::{
 };
 use wgpu::{Backends, Dx12Compiler, InstanceDescriptor, InstanceFlags};
 use winit::{
-    dpi::PhysicalSize,
+    dpi::{
+        PhysicalSize,
+        PhysicalPosition,
+    },
     event::*,
     event_loop::{ControlFlow, EventLoop},
     window::{WindowBuilder, WindowButtons},
@@ -267,6 +270,9 @@ async fn main() -> Result<(), AscendingError> {
     let mut time = 0.0f32;
     let mut fps = 0u32;
 
+    let mut mouse_pos: PhysicalPosition<f64> = PhysicalPosition::new(0.0, 0.0);
+    let mut mouse_press: bool = false;
+
     #[allow(deprecated)]
     event_loop.run(move |event, elwt| {
         // we check for the first batch of events to ensure we dont need to stop rendering here first.
@@ -307,6 +313,59 @@ async fn main() -> Result<(), AscendingError> {
                                     &mut config_data);
                         };
                     }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        mouse_pos = position.clone();
+
+                        if mouse_press {
+                            handle_input(&mut systems, InputType::MouseLeftDownMove, 
+                                &Vec2::new(mouse_pos.x as f32, mouse_pos.y as f32),
+                                &mut gameinput,
+                                &mut gui,
+                                &mut tileset,
+                                &mut mapview,
+                                &mut database,
+                                &mut config_data,
+                                elwt,);
+                        } else {
+                            handle_input(&mut systems, InputType::MouseMove, 
+                                &Vec2::new(mouse_pos.x as f32, mouse_pos.y as f32),
+                                &mut gameinput,
+                                &mut gui,
+                                &mut tileset,
+                                &mut mapview,
+                                &mut database,
+                                &mut config_data,
+                                elwt,);
+                        }
+                    }
+                    WindowEvent::MouseInput { state, .. } => {
+                        match state {
+                            ElementState::Pressed => {
+                                handle_input(&mut systems, InputType::MouseLeftDown, 
+                                    &Vec2::new(mouse_pos.x as f32, mouse_pos.y as f32),
+                                    &mut gameinput,
+                                    &mut gui, 
+                                    &mut tileset,
+                                    &mut mapview,
+                                    &mut database,
+                                    &mut config_data,
+                                    elwt,);
+                                mouse_press = true;
+                            },
+                            ElementState::Released => {
+                                handle_input(&mut systems, InputType::MouseRelease, 
+                                    &Vec2::new(mouse_pos.x as f32, mouse_pos.y as f32),
+                                    &mut gameinput,
+                                    &mut gui,
+                                    &mut tileset,
+                                    &mut mapview,
+                                    &mut database,
+                                    &mut config_data,
+                                    elwt,);
+                                mouse_press = false;
+                            },
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -314,22 +373,14 @@ async fn main() -> Result<(), AscendingError> {
             _ => {}
         }
 
+        // update our renderer based on events here
+        if !systems.renderer.update(&event).unwrap() { return; }
+
         // get the current window size so we can see if we need to resize the renderer.
         let new_size = systems.renderer.size();
-        let inner_size = systems.renderer.window().inner_size();
-
-        // if our rendering size is zero stop rendering to avoid errors.
-        if new_size.width == 0.0
-            || new_size.height == 0.0
-            || inner_size.width == 0
-            || inner_size.height == 0
-        { return; }
 
         // update our inputs.
         input_handler.update(systems.renderer.window(), &event, 1.0);
-
-        // update our renderer based on events here
-        if !systems.renderer.update(&event).unwrap() { return; }
 
         if systems.size != new_size {
             systems.size = new_size;
@@ -347,69 +398,7 @@ async fn main() -> Result<(), AscendingError> {
             systems.renderer.update_depth_texture();
         }
 
-        let mouse_pos_result = input_handler.mouse_position();
-        let mouse_pos =if mouse_pos_result.is_none() { (0.0, 0.0) } else { mouse_pos_result.unwrap() };
-
-        if input_handler.is_mouse_button_down(MouseButton::Left) {
-            if !gameinput.did_mouse_press {
-                gameinput.did_mouse_press = true;
-                gameinput.mouse_release = true;
-                gameinput.last_mouse_pos = mouse_pos.clone();
-
-                handle_input(&mut systems, InputType::MouseLeftDown, 
-                    &Vec2::new(mouse_pos.0, mouse_pos.1),
-                    &mut gameinput,
-                    &mut gui, 
-                    &mut tileset,
-                    &mut mapview,
-                    &mut database,
-                    &mut config_data,
-                    elwt,);
-            } else {
-                if gameinput.last_mouse_pos != mouse_pos {
-                    gameinput.last_mouse_pos = mouse_pos.clone();
-                    
-                    handle_input(&mut systems, InputType::MouseLeftDownMove, 
-                        &Vec2::new(mouse_pos.0, mouse_pos.1),
-                        &mut gameinput,
-                        &mut gui,
-                        &mut tileset,
-                        &mut mapview,
-                        &mut database,
-                        &mut config_data,
-                        elwt,);
-                }
-            }
-        } else {
-            if gameinput.last_mouse_pos != mouse_pos {
-                gameinput.last_mouse_pos = mouse_pos.clone();
-                
-                handle_input(&mut systems, InputType::MouseMove, 
-                    &Vec2::new(mouse_pos.0, mouse_pos.1),
-                    &mut gameinput,
-                    &mut gui,
-                    &mut tileset,
-                    &mut mapview,
-                    &mut database,
-                    &mut config_data,
-                    elwt,);
-            }
-            if gameinput.mouse_release {
-                gameinput.mouse_release = false;
-
-                handle_input(&mut systems, InputType::MouseRelease, 
-                    &Vec2::new(mouse_pos.0, mouse_pos.1),
-                    &mut gameinput,
-                    &mut gui,
-                    &mut tileset,
-                    &mut mapview,
-                    &mut database,
-                    &mut config_data,
-                    elwt,);
-            }
-            gameinput.did_mouse_press = false;
-        }
-
+        frame_time.update();
         let seconds = frame_time.seconds();
         // update our systems data to the gpu. this is the Camera in the shaders.
         graphics.system.update(&systems.renderer, &frame_time);
@@ -456,14 +445,17 @@ async fn main() -> Result<(), AscendingError> {
         fps += 1;
 
         input_handler.end_frame();
-        frame_time.update();
+        systems.renderer.window().pre_present_notify();
         systems.renderer.present().unwrap();
 
         // These clear the Last used image tags.
         //Can be used later to auto unload things not used anymore if ram/gpu ram becomes a issue.
-        graphics.image_atlas.trim();
-        graphics.map_atlas.trim();
-        graphics.text_atlas.trim();
+        if fps == 1 {
+            graphics.image_atlas.trim();
+            graphics.map_atlas.trim();
+            graphics.text_atlas.trim();
+            systems.renderer.font_sys.shape_run_cache.trim(1024);
+        }
     })?;
 
     Ok(())

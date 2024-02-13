@@ -153,7 +153,7 @@ impl GfxCollection {
         if let Some(data) = self.collection.get_mut(index) {
             match &mut data.gfx {
                 GfxType::Text(text) => {
-                    text.set_text(renderer, msg, Attrs::new());
+                    text.set_text(renderer, msg, Attrs::new(), Shaping::Advanced,);
                 },
                 _ => {}
             }

@@ -40,7 +40,7 @@ impl Textbox {
             .set_bounds(Some(Bounds::new(textbox_pos.x, textbox_pos.y, 
                                         textbox_pos.x + textbox_size.x, textbox_pos.y + textbox_size.y)))
             .set_default_color(Color::rgba(200, 200, 200, 255))
-            .set_text(&mut systems.renderer, "", Attrs::new());
+            .set_text(&mut systems.renderer, "", Attrs::new(), Shaping::Advanced,);
         txt.use_camera = true;
         txt.changed = true;
         if can_wrap {

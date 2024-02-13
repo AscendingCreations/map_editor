@@ -378,7 +378,7 @@ pub fn set_tab(systems: &mut DrawSetting, gui: &mut Interface, tab_index: usize,
                         Vec3::new(ajdust_pos.x, ajdust_pos.y, ORDER_ATTRIBUTE_LABEL),
                         Vec2::new(100.0, 20.0),
                         Color::rgba(180, 180, 180, 255));
-                    text.set_text(&mut systems.renderer, &msg, Attrs::new());
+                    text.set_text(&mut systems.renderer, &msg, Attrs::new(), Shaping::Advanced,);
                     gui.editor_label.push(systems.gfx.add_text(text, 1));
 
                     if i != 1 {
@@ -420,7 +420,7 @@ pub fn set_tab(systems: &mut DrawSetting, gui: &mut Interface, tab_index: usize,
                     Vec3::new(content_pos.x, content_pos.y, ORDER_ATTRIBUTE_LABEL),
                     Vec2::new(100.0, 20.0),
                     Color::rgba(180, 180, 180, 255));
-                text.set_text(&mut systems.renderer, "Weather", Attrs::new());
+                text.set_text(&mut systems.renderer, "Weather", Attrs::new(), Shaping::Advanced,);
                 gui.editor_label.push(systems.gfx.add_text(text, 1));
 
                 let mut selectionbox = SelectionBox::new(systems, 
@@ -509,7 +509,7 @@ pub fn open_attribute_settings(systems: &mut DrawSetting,
                     Vec3::new(ajdust_pos.x, ajdust_pos.y, ORDER_ATTRIBUTE_LABEL),
                     Vec2::new(100.0, 20.0),
                     Color::rgba(180, 180, 180, 255));
-                text.set_text(&mut systems.renderer, msg, Attrs::new());
+                text.set_text(&mut systems.renderer, msg, Attrs::new(), Shaping::Advanced,);
                 gui.editor_label.push(systems.gfx.add_text(text, 1));
             }
 

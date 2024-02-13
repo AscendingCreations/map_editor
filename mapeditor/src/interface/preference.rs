@@ -49,7 +49,7 @@ impl MenuButton {
                 Vec2::new(118.0, 20.0),
                 Bounds::new(pos.x, pos.y, pos.x + 120.0, pos.y + 20.0),
                 Color::rgba(20, 20, 20, 255));
-        txt.set_text(&mut systems.renderer, msg, Attrs::new());
+        txt.set_text(&mut systems.renderer, msg, Attrs::new(), Shaping::Advanced,);
         let text = systems.gfx.add_text(txt, 3);
         systems.gfx.set_visible(text, false);
 
@@ -89,7 +89,7 @@ impl KeyList {
         let mut txt = create_label(systems, Vec3::new(pos.x, pos.y, ORDER_PREFERENCE_KEYLIST_TEXT), label_size,
                     Bounds::new(pos.x, pos.y, pos.x + label_size.x, pos.y + label_size.y),
                     Color::rgba(180, 180, 180, 255));
-        txt.set_text(&mut systems.renderer, msg, Attrs::new());
+        txt.set_text(&mut systems.renderer, msg, Attrs::new(), Shaping::Advanced,);
         let text = systems.gfx.add_text(txt, 3);
         systems.gfx.set_visible(text, false);
 
@@ -98,7 +98,7 @@ impl KeyList {
         let mut keystring = create_label(systems, key_pos, key_label_size, 
                     Bounds::new(key_pos.x, key_pos.y, key_pos.x + key_label_size.x, key_pos.y + key_label_size.y),
                     Color::rgba(180, 180, 180, 255));
-        keystring.set_text(&mut systems.renderer, keystr, Attrs::new());
+        keystring.set_text(&mut systems.renderer, keystr, Attrs::new(), Shaping::Advanced,);
         let key_string = systems.gfx.add_text(keystring, 3);
         systems.gfx.set_visible(key_string, false);
 

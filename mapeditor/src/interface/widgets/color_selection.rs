@@ -182,7 +182,7 @@ impl ColorSelection {
                 Color::rgba(180, 180, 180, 255));
         
         if msg.is_some() {
-            txt.set_text(&mut systems.renderer, msg.unwrap(), Attrs::new());
+            txt.set_text(&mut systems.renderer, msg.unwrap(), Attrs::new(), Shaping::Advanced,);
             txt.set_bounds(Some(Bounds::new(text_pos.x, text_pos.y, text_pos.x + txt.measure().x, text_pos.y + 20.0)));
         };
         let text = systems.gfx.add_text(txt, render_layer[1]);

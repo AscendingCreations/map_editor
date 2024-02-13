@@ -44,10 +44,7 @@ pub enum PressType {
 
 pub struct GameInput {
     // General
-    pub last_mouse_pos: (f32, f32),
     pub presstype: PressType,
-    pub did_mouse_press: bool,
-    pub mouse_release: bool,
     // Tileset selection
     pub tileset_start: Vec2,
     pub tileset_end: Vec2,
@@ -64,10 +61,7 @@ pub struct GameInput {
 impl GameInput {
     pub fn new() -> Self {
         Self {
-            last_mouse_pos: (0.0, 0.0),
             presstype: PressType::PressNone,
-            did_mouse_press: false,
-            mouse_release: false,
             tileset_start: Vec2::new(0.0, 0.0),
             tileset_end: Vec2::new(0.0, 0.0),
             selected_size: Vec2::new(1.0, 1.0),

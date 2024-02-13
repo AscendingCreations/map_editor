@@ -38,7 +38,7 @@ impl Button {
             Vec2::new(button_size.x, 20.0),
             Bounds::new(pos.x, pos.y + adjust_text_y, pos.x + button_size.x, pos.y + button_size.y),
             Color::rgba(120, 120, 120, 255));
-        txt.set_text(&mut systems.renderer, message, Attrs::new());
+        txt.set_text(&mut systems.renderer, message, Attrs::new(), Shaping::Advanced,);
         // Adjust text x position
         let message_size = txt.measure();
         txt.pos.x =  pos.x + ((button_size.x * 0.5).floor() - (message_size.x * 0.5)).floor();

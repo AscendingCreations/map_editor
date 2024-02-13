@@ -106,7 +106,7 @@ impl TilesetList {
                         Vec3::new(bg1.position.x + 7.0, bg1.position.y + 369.0 - (21.0 * index as f32), ORDER_TILESETLIST_LABEL),
                         Vec2::new(100.0, 20.0),
                         Color::rgba(180, 180, 180, 255));
-            text.set_text(&mut systems.renderer, &systems.resource.tilesheet[index].name, Attrs::new());
+            text.set_text(&mut systems.renderer, &systems.resource.tilesheet[index].name, Attrs::new(), Shaping::Advanced,);
 
             let index = systems.gfx.add_text(text, 1);
             systems.gfx.set_visible(index, false);

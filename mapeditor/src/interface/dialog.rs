@@ -64,7 +64,7 @@ impl DialogButton {
             Vec2::new(text_size.x, text_size.y),
             Bounds::new(pos.x, pos.y + 8.0, pos.x + 103.0, pos.y + 28.0),
             Color::rgba(120, 120, 120, 255));
-        txt.set_text(&mut systems.renderer, message, Attrs::new());
+        txt.set_text(&mut systems.renderer, message, Attrs::new(), Shaping::Advanced,);
         // Adjust text x position
         let message_size = txt.measure();
         txt.pos.x =  pos.x + (51.0 - (message_size.x * 0.5)).floor();
@@ -238,7 +238,7 @@ impl Dialog {
             Vec2::new(window_size.x, 20.0),
             Bounds::new(window_pos.x, message_pos_y, window_pos.x + window_size.x, message_pos_y + 20.0),
             Color::rgba(120, 120, 120, 255)); // FPS
-        msg_text.set_text(&mut systems.renderer, msg, Attrs::new());
+        msg_text.set_text(&mut systems.renderer, msg, Attrs::new(), Shaping::Advanced,);
         // Adjust message x position based on message text
         let message_size = msg_text.measure();
         msg_text.pos.x = window_pos.x + ((window_size.x * 0.5) - (message_size.x * 0.5)).floor();
@@ -301,9 +301,9 @@ impl Dialog {
                         Bounds::new(content_pos.x, content_pos.y, content_pos.x + label_size.x - 14.0, content_pos.y + 20.0),
                         Color::rgba(120, 120, 120, 255)); // X
                     if index < editor_data.len() {
-                        text.set_text(&mut systems.renderer, &editor_data[index], Attrs::new());
+                        text.set_text(&mut systems.renderer, &editor_data[index], Attrs::new(), Shaping::Advanced,);
                     } else {
-                        text.set_text(&mut systems.renderer, "", Attrs::new());
+                        text.set_text(&mut systems.renderer, "", Attrs::new(), Shaping::Advanced,);
                     }
                     data.push(systems.gfx.add_text(text, 3));
                 }
@@ -318,19 +318,19 @@ impl Dialog {
                     Vec2::new(window_size.x, 20.0),
                     Bounds::new(content_pos.x, content_pos.y , content_pos.x + 10.0, content_pos.y + 20.0),
                     Color::rgba(120, 120, 120, 255)); // X
-                mapx.set_text(&mut systems.renderer, "X", Attrs::new());
+                mapx.set_text(&mut systems.renderer, "X", Attrs::new(), Shaping::Advanced,);
                 let mut mapy = create_label(systems,
                     Vec3::new(content_pos.x + 70.0, content_pos.y, ORDER_DIALOG_CONTENT_TEXT), 
                     Vec2::new(window_size.x, 20.0),
                     Bounds::new(content_pos.x + 70.0, content_pos.y, content_pos.x + 80.0, content_pos.y + 20.0),
                     Color::rgba(120, 120, 120, 255)); // Y
-                mapy.set_text(&mut systems.renderer, "Y", Attrs::new());
+                mapy.set_text(&mut systems.renderer, "Y", Attrs::new(), Shaping::Advanced,);
                 let mut mapgroup = create_label(systems,
                     Vec3::new(content_pos.x + 140.0, content_pos.y, ORDER_DIALOG_CONTENT_TEXT), 
                     Vec2::new(window_size.x, 20.0),
                     Bounds::new(content_pos.x + 140.0, content_pos.y, content_pos.x + 185.0, content_pos.y + 20.0),
                     Color::rgba(120, 120, 120, 255)); // Group
-                mapgroup.set_text(&mut systems.renderer, "Group", Attrs::new());
+                mapgroup.set_text(&mut systems.renderer, "Group", Attrs::new(), Shaping::Advanced,);
                 vec![
                     systems.gfx.add_text(mapx, 3),
                     systems.gfx.add_text(mapy, 3),

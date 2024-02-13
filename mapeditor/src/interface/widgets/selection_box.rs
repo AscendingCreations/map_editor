@@ -122,7 +122,7 @@ impl SelectionBox {
             let mut ltext = create_basic_label(systems, 
                 Vec3::new(lpos.x, lpos.y, z_order[4]),
                 Vec2::new(width - 20.0, 20.0), Color::rgba(180, 180, 180, 255));
-            ltext.set_text(&mut systems.renderer, &list[index], Attrs::new());
+            ltext.set_text(&mut systems.renderer, &list[index], Attrs::new(), Shaping::Advanced,);
 
             let (rect, text) = (systems.gfx.add_rect(lrect, 0), systems.gfx.add_text(ltext, 1));
             systems.gfx.set_visible(rect, false);
@@ -138,7 +138,7 @@ impl SelectionBox {
         let mut txt = create_basic_label(systems, 
                 Vec3::new(pos.x + 4.0, pos.y + 1.0, z_order[1]), Vec2::new(width - 26.0, 20.0),
                 Color::rgba(180, 180, 180, 255));
-        txt.set_text(&mut systems.renderer, &list[0], Attrs::new());
+        txt.set_text(&mut systems.renderer, &list[0], Attrs::new(), Shaping::Advanced,);
         let text = systems.gfx.add_text(txt, 1);
 
         Self {
