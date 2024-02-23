@@ -115,6 +115,7 @@ checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 [[package]]
 name = "ascending_camera"
 version = "0.1.0"
+source = "git+https://github.com/AscendingCreations/AscendingLibraries#2e2286adb09012f2ac0c8d58b2f278749b80f57d"
 dependencies = [
  "glam",
  "mint",
@@ -123,6 +124,7 @@ dependencies = [
 [[package]]
 name = "ascending_graphics"
 version = "0.1.0"
+source = "git+https://github.com/AscendingCreations/AscendingLibraries#2e2286adb09012f2ac0c8d58b2f278749b80f57d"
 dependencies = [
  "ascending_camera",
  "ascending_input",
@@ -157,6 +159,7 @@ dependencies = [
 [[package]]
 name = "ascending_input"
 version = "0.1.0"
+source = "git+https://github.com/AscendingCreations/AscendingLibraries#2e2286adb09012f2ac0c8d58b2f278749b80f57d"
 dependencies = [
  "ordered-float",
  "serde",
@@ -1328,7 +1331,6 @@ dependencies = [
  "backtrace",
  "bytemuck",
  "chrono",
- "cosmic-text",
  "futures",
  "glam",
  "guillotiere",
@@ -1337,14 +1339,12 @@ dependencies = [
  "indexmap",
  "log",
  "mint",
- "naga",
  "serde",
  "serde_json",
  "slab",
  "thiserror",
  "tokio",
  "ubits",
- "wgpu",
  "winit",
 ]
 
