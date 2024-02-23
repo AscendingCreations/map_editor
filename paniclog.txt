@@ -1,0 +1,15 @@
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+INFO - Adapter Vulkan AdapterInfo { name: "NVIDIA GeForce GTX 960", vendor: 4318, device: 5121, device_type: DiscreteGpu, driver: "NVIDIA", driver_info: "546.65", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+INFO - Adapter Vulkan AdapterInfo { name: "NVIDIA GeForce GTX 960", vendor: 4318, device: 5121, device_type: DiscreteGpu, driver: "NVIDIA", driver_info: "546.65", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+INFO - Adapter Vulkan AdapterInfo { name: "NVIDIA GeForce GTX 960", vendor: 4318, device: 5121, device_type: DiscreteGpu, driver: "NVIDIA", driver_info: "546.65", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+INFO - Adapter Vulkan AdapterInfo { name: "NVIDIA GeForce GTX 960", vendor: 4318, device: 5121, device_type: DiscreteGpu, driver: "NVIDIA", driver_info: "546.65", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+INFO - Adapter Vulkan AdapterInfo { name: "NVIDIA GeForce GTX 960", vendor: 4318, device: 5121, device_type: DiscreteGpu, driver: "NVIDIA", driver_info: "546.65", backend: Vulkan }
