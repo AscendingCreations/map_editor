@@ -151,7 +151,7 @@ impl EditorData {
             (0..32).for_each(|x| {
                 (0..32).for_each(|y| {
                     let tile_num = get_tile_pos(x, y);
-                    (0..8).for_each(|layer| {
+                    (0..9).for_each(|layer| {
                         mapdata.tile[layer].id[tile_num] = mapview.maps[0]
                             .get_tile((x as u32, y as u32, layer as u32))
                             .id
@@ -260,7 +260,7 @@ impl EditorData {
             (0..32).for_each(|x| {
                 (0..32).for_each(|y| {
                     let tile_num = get_tile_pos(x, y);
-                    (0..8).for_each(|layer| {
+                    (0..9).for_each(|layer| {
                         let id = mapdata.tile[layer].id[tile_num] as usize;
                         if id > 0 {
                             map.maps[0].set_tile(
@@ -374,7 +374,7 @@ impl EditorData {
 
                 (0..size.x as i32).for_each(|x| {
                     (0..size.y as i32).for_each(|y| {
-                        (0..8).for_each(|layer| {
+                        (0..9).for_each(|layer| {
                             let tile_num = get_tile_pos(
                                 start.x as i32 + x,
                                 start.y as i32 + y,
@@ -442,7 +442,7 @@ impl MapData {
             x,
             y,
             group,
-            tile: vec![Tile { id: vec![0; 1024] }; 8],
+            tile: vec![Tile { id: vec![0; 1024] }; 9],
             attribute: vec![MapAttribute::Walkable; 1024],
             zonespawns: Default::default(),
             zones: Default::default(),

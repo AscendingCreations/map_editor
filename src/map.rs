@@ -118,7 +118,6 @@ impl MapView {
             maps.push(map);
         }
 
-        // We add the link selection overlay above the link map as a selecting effect
         for count in 0..8 {
             let mut image = Rect::new(&mut systems.renderer, 0);
             image
@@ -795,7 +794,7 @@ impl MapView {
     }
 
     pub fn clear_map(&mut self, index: usize) {
-        (0..8).for_each(|layer| {
+        (0..9).for_each(|layer| {
             (0..32).for_each(|x| {
                 (0..32).for_each(|y| {
                     self.maps[index]

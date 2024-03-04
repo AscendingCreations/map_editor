@@ -27,7 +27,7 @@ impl TabText {
         let txt = create_basic_label(systems,
             Vec3::new(pos.x + 24.0, pos.y - 1.0, ORDER_TAB_LABEL),
             Vec2::new(165.0, 20.0),
-            Color::rgba(120, 120, 120, 255));
+            Color::rgba(180, 180, 180, 255));
         let text = systems.gfx.add_text(txt, 1);
 
         systems.gfx.set_visible(text, false);

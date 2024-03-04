@@ -42,7 +42,7 @@ impl Button {
                 pos.x + button_size.x,
                 pos.y + button_size.y,
             ),
-            Color::rgba(120, 120, 120, 255),
+            Color::rgba(180, 180, 180, 255),
         );
         txt.set_text(
             &mut systems.renderer,
