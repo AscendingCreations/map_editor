@@ -1,6 +1,7 @@
 use graphics::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_repr::*;
 use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::path::Path;
@@ -173,7 +174,7 @@ impl EditorData {
                         mapview.map_zone_setting[i].npc_id[npc_index];
                 }
             }
-            mapdata.fixed_weather = mapview.fixed_weather;
+            mapdata.weather = Weather::None; //ToDo mapview.fixed_weather;
             if should_save {
                 mapdata.save_file().unwrap();
                 // Since we have saved the map, let's mark the map as 'no change'
@@ -197,9 +198,9 @@ impl EditorData {
         for key in keys_to_remove {
             let mut should_remove = true;
             if let Some(mapdata) = self.maps.get_mut(&key) {
-                if self.x == mapdata.x
-                    && self.y == mapdata.y
-                    && self.group == mapdata.group
+                if self.x == mapdata.position.x
+                    && self.y == mapdata.position.y
+                    && self.group == mapdata.position.group as u64
                 {
                     should_remove = false;
                     if let Some(did_change) = self.did_map_change.get_mut(&key)
@@ -228,9 +229,9 @@ impl EditorData {
 
         for key in keys_to_reset {
             if let Some(mapdata) = self.maps.get_mut(&key) {
-                if self.x == mapdata.x
-                    && self.y == mapdata.y
-                    && self.group == mapdata.group
+                if self.x == mapdata.position.x
+                    && self.y == mapdata.position.y
+                    && self.group == mapdata.position.group as u64
                 {
                     if let Some(did_change) = self.did_map_change.get_mut(&key)
                     {
@@ -291,7 +292,7 @@ impl EditorData {
                         mapdata.zones[i].1[npc_index];
                 }
             }
-            map.fixed_weather = mapdata.fixed_weather;
+            map.fixed_weather = 0; //ToDo mapdata.weather;
         }
     }
 
@@ -420,39 +421,73 @@ impl EditorData {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MapPosition {
+    pub x: i32,
+    pub y: i32,
+    pub group: i32,
+}
+
+#[derive(
+    Copy,
+    Clone,
+    Serialize_repr,
+    Deserialize_repr,
+    PartialEq,
+    Eq,
+    Default,
+    Debug,
+)]
+#[repr(u8)]
+pub enum Weather {
+    #[default]
+    None,
+    Rain,
+    Snow,
+    Sunny,
+    Storm,
+    Blizzard,
+    Heat,
+    Hail,
+    SandStorm,
+    Windy,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Tile {
     pub id: Vec<u32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MapData {
-    pub x: i32,
-    pub y: i32,
-    pub group: u64,
+    pub position: MapPosition,
     pub tile: Vec<Tile>,
     pub attribute: Vec<MapAttribute>,
     pub zonespawns: [Vec<(u16, u16)>; 5],
     pub zones: [(u64, [Option<u64>; 5]); 5],
-    pub fixed_weather: u8,
+    pub music: u32,
+    pub weather: Weather,
 }
 
 impl MapData {
     pub fn default(x: i32, y: i32, group: u64) -> Self {
         Self {
-            x,
-            y,
-            group,
+            position: MapPosition {
+                x,
+                y,
+                group: group as i32,
+            },
             tile: vec![Tile { id: vec![0; 1024] }; 9],
             attribute: vec![MapAttribute::Walkable; 1024],
             zonespawns: Default::default(),
             zones: Default::default(),
-            fixed_weather: 0,
+            music: 0,
+            weather: Weather::default(),
         }
     }
 
     pub fn save_file(&self) -> Result<(), AscendingError> {
         let name =
-            format!("./data/maps/{}_{}_{}.json", self.x, self.y, self.group);
+            format!("./data/maps/{}_{}_{}.json", self.position.x, self.position.y, self.position.group);
 
         match OpenOptions::new().truncate(true).write(true).open(&name) {
             Ok(file) => {
