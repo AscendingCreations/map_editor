@@ -217,7 +217,7 @@ pub fn interface_key_input(
             let attribute =
                 MapAttribute::convert_to_plain_enum(gui.current_tab_data + 1);
             match attribute {
-                MapAttribute::Warp(_, _, _, _, _) => {
+                MapAttribute::Warp(_) => {
                     if gui.selected_textbox >= 0 {
                         if gui.selected_textbox < 2 {
                             gui.editor_textbox[gui.selected_textbox as usize]
@@ -236,7 +236,7 @@ pub fn interface_key_input(
                         result = true;
                     }
                 }
-                MapAttribute::ItemSpawn(_, _) => {
+                MapAttribute::ItemSpawn(_) => {
                     if gui.selected_textbox >= 0 {
                         gui.editor_textbox[gui.selected_textbox as usize]
                             .enter_numeric(systems, event, 6, false);
@@ -651,7 +651,7 @@ pub fn open_attribute_settings(
     gui.editor_textbox = vec![];
 
     match attr {
-        MapAttribute::Warp(_, _, _, _, _) => {
+        MapAttribute::Warp(_) => {
             gui.editor_label = Vec::with_capacity(7);
             for i in 0..7 {
                 let mut ajdust_pos = systems.gfx.get_pos(gui.tab_opt_bg[0]);
@@ -790,13 +790,17 @@ pub fn open_attribute_settings(
                 gui.editor_textbox[0].input_text(systems, String::new());
             }
         }
-        MapAttribute::ItemSpawn(_, _) => {
-            gui.editor_label = Vec::with_capacity(2);
-            for i in 0..2 {
+        MapAttribute::ItemSpawn(_) => {
+            gui.editor_label = Vec::with_capacity(3);
+            for i in 0..3 {
                 let mut ajdust_pos = systems.gfx.get_pos(gui.tab_opt_bg[0]);
                 let msg = match i {
                     1 => {
                         ajdust_pos += Vec3::new(10.0, 340.0, 0.0);
+                        "Value"
+                    }
+                    2 => {
+                        ajdust_pos += Vec3::new(10.0, 312.0, 0.0);
                         "Timer"
                     }
                     _ => {
@@ -824,12 +828,17 @@ pub fn open_attribute_settings(
             }
 
             gui.editor_textbox = Vec::with_capacity(2);
-            for i in 0..2 {
+            for i in 0..3 {
                 let pos = systems.gfx.get_pos(gui.tab_opt_bg[0]);
                 let textbox_pos = match i {
                     1 => Vec3::new(
                         pos.x + 65.0,
                         pos.y + 340.0,
+                        ORDER_ATTRIBUTE_TEXTBOX,
+                    ),
+                    2 => Vec3::new(
+                        pos.x + 65.0,
+                        pos.y + 312.0,
                         ORDER_ATTRIBUTE_TEXTBOX,
                     ),
                     _ => Vec3::new(
@@ -852,9 +861,12 @@ pub fn open_attribute_settings(
                     .input_text(systems, data[0].get_uint().to_string());
                 gui.editor_textbox[1]
                     .input_text(systems, data[1].get_uint().to_string());
+                gui.editor_textbox[2]
+                    .input_text(systems, data[2].get_uint().to_string());
             } else {
                 gui.editor_textbox[0].input_text(systems, "0".to_string());
                 gui.editor_textbox[1].input_text(systems, "0".to_string());
+                gui.editor_textbox[2].input_text(systems, "0".to_string());
             }
         }
         _ => {}

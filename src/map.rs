@@ -290,20 +290,21 @@ impl MapView {
         let last_attribute = self.map_attributes[tilepos].attribute.clone();
         let last_attribute_num = MapAttribute::convert_to_num(&last_attribute);
         let data = match last_attribute {
-            MapAttribute::Warp(mx, my, mg, tx, ty) => {
+            MapAttribute::Warp(warpdata) => {
                 vec![
-                    InsertTypes::Int(mx as i64),
-                    InsertTypes::Int(my as i64),
-                    InsertTypes::UInt(mg),
-                    InsertTypes::UInt(tx as u64),
-                    InsertTypes::UInt(ty as u64),
+                    InsertTypes::Int(warpdata.map_x as i64),
+                    InsertTypes::Int(warpdata.map_y as i64),
+                    InsertTypes::UInt(warpdata.map_group),
+                    InsertTypes::UInt(warpdata.tile_x as u64),
+                    InsertTypes::UInt(warpdata.tile_y as u64),
                 ]
             }
             MapAttribute::Sign(text) => vec![InsertTypes::Str(text)],
-            MapAttribute::ItemSpawn(itemindex, timer) => {
+            MapAttribute::ItemSpawn(itemdata) => {
                 vec![
-                    InsertTypes::UInt(itemindex as u64),
-                    InsertTypes::UInt(timer),
+                    InsertTypes::UInt(itemdata.index as u64),
+                    InsertTypes::UInt(itemdata.amount as u64),
+                    InsertTypes::UInt(itemdata.timer),
                 ]
             }
             _ => vec![],
@@ -350,20 +351,21 @@ impl MapView {
             let last_attribute_num =
                 MapAttribute::convert_to_num(&last_attribute);
             let data = match last_attribute {
-                MapAttribute::Warp(mx, my, mg, tx, ty) => {
+                MapAttribute::Warp(warpdata) => {
                     vec![
-                        InsertTypes::Int(mx as i64),
-                        InsertTypes::Int(my as i64),
-                        InsertTypes::UInt(mg),
-                        InsertTypes::UInt(tx as u64),
-                        InsertTypes::UInt(ty as u64),
+                        InsertTypes::Int(warpdata.map_x as i64),
+                        InsertTypes::Int(warpdata.map_y as i64),
+                        InsertTypes::UInt(warpdata.map_group),
+                        InsertTypes::UInt(warpdata.tile_x as u64),
+                        InsertTypes::UInt(warpdata.tile_y as u64),
                     ]
                 }
                 MapAttribute::Sign(text) => vec![InsertTypes::Str(text)],
-                MapAttribute::ItemSpawn(itemindex, timer) => {
+                MapAttribute::ItemSpawn(itemdata) => {
                     vec![
-                        InsertTypes::UInt(itemindex as u64),
-                        InsertTypes::UInt(timer),
+                        InsertTypes::UInt(itemdata.index as u64),
+                        InsertTypes::UInt(itemdata.amount as u64),
+                        InsertTypes::UInt(itemdata.timer),
                     ]
                 }
                 _ => vec![],
@@ -910,22 +912,23 @@ impl MapView {
                         let last_attribute_num =
                             MapAttribute::convert_to_num(&last_attribute);
                         let data = match last_attribute {
-                            MapAttribute::Warp(mx, my, mg, tx, ty) => {
+                            MapAttribute::Warp(warpdata) => {
                                 vec![
-                                    InsertTypes::Int(mx as i64),
-                                    InsertTypes::Int(my as i64),
-                                    InsertTypes::UInt(mg),
-                                    InsertTypes::UInt(tx as u64),
-                                    InsertTypes::UInt(ty as u64),
+                                    InsertTypes::Int(warpdata.map_x as i64),
+                                    InsertTypes::Int(warpdata.map_y as i64),
+                                    InsertTypes::UInt(warpdata.map_group),
+                                    InsertTypes::UInt(warpdata.tile_x as u64),
+                                    InsertTypes::UInt(warpdata.tile_y as u64),
                                 ]
                             }
                             MapAttribute::Sign(text) => {
                                 vec![InsertTypes::Str(text)]
                             }
-                            MapAttribute::ItemSpawn(itemindex, timer) => {
+                            MapAttribute::ItemSpawn(itemdata) => {
                                 vec![
-                                    InsertTypes::UInt(itemindex as u64),
-                                    InsertTypes::UInt(timer),
+                                    InsertTypes::UInt(itemdata.index as u64),
+                                    InsertTypes::UInt(itemdata.amount as u64),
+                                    InsertTypes::UInt(itemdata.timer),
                                 ]
                             }
                             _ => vec![],

@@ -861,3 +861,167 @@ INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::fr
 WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
 WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
 INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+ERROR - PANIC: panicked at src\editor_input\interface_input.rs:864:35:
+index out of bounds: the len is 2 but the index is 2, BACKTRACE:    0: backtrace::backtrace::dbghelp::trace
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\dbghelp.rs:98
+   1: backtrace::backtrace::trace_unsynchronized<backtrace::capture::impl$1::create::closure_env$0>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\mod.rs:66
+   2: backtrace::backtrace::trace<backtrace::capture::impl$1::create::closure_env$0>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\mod.rs:53
+   3: backtrace::capture::Backtrace::create
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\capture.rs:176
+   4: backtrace::capture::Backtrace::new
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\capture.rs:140
+   5: mapeditor::main::async_block$0::closure$0
+             at src\main.rs:104
+   6: alloc::boxed::impl$49::call
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\alloc\src\boxed.rs:2030
+   7: std::panicking::rust_panic_with_hook
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:785
+   8: std::panicking::begin_panic_handler::closure$0
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:659
+   9: std::sys_common::backtrace::__rust_end_short_backtrace<std::panicking::begin_panic_handler::closure_env$0,never$>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\sys_common\backtrace.rs:171
+  10: std::panicking::begin_panic_handler
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:647
+  11: core::panicking::panic_fmt
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\core\src\panicking.rs:72
+  12: core::panicking::panic_bounds_check
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\core\src\panicking.rs:208
+  13: core::slice::index::impl$2::index_mut<mapeditor::interface::widgets::textbox::Textbox>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\slice\index.rs:261
+  14: alloc::vec::impl$13::index_mut<mapeditor::interface::widgets::textbox::Textbox,usize,alloc::alloc::Global>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\alloc\src\vec\mod.rs:2782
+  15: mapeditor::editor_input::interface_input::open_attribute_settings
+             at src\editor_input\interface_input.rs:864
+  16: mapeditor::editor_input::mapview_input::interact_with_map
+             at src\editor_input\mapview_input.rs:148
+  17: mapeditor::editor_input::mapview_input::mapview_input
+             at src\editor_input\mapview_input.rs:216
+  18: mapeditor::editor_input::handle_input
+             at src\editor_input.rs:115
+  19: mapeditor::main::async_block$0::closure$2
+             at src\main.rs:363
+  20: winit::platform_impl::platform::event_loop::impl$3::run_on_demand::closure$0<tuple$<>,mapeditor::main::async_block$0::closure_env$2>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:236
+  21: alloc::boxed::impl$48::call_mut<tuple$<enum2$<winit::event::Event<tuple$<> > > >,dyn$<core::ops::function::FnMut<tuple$<enum2$<winit::event::Event<tuple$<> > > >,assoc$<Output,tuple$<> > > >,alloc::alloc::Global>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\alloc\src\boxed.rs:2023
+  22: winit::platform_impl::platform::event_loop::runner::impl$3::call_event_handler::closure$0<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop\runner.rs:250
+  23: core::panic::unwind_safe::impl$23::call_once<tuple$<>,winit::platform_impl::platform::event_loop::runner::impl$3::call_event_handler::closure_env$0<tuple$<> > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\panic\unwind_safe.rs:272
+  24: std::panicking::try::do_call<core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::event_loop::runner::impl$3::call_event_handler::closure_env$0<tuple$<> > >,tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\panicking.rs:554
+  25: std::panicking::try::do_catch<core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::window::impl$2::on_nccreate::closure_env$0<tuple$<> > >,tuple$<winit::platform_impl::platform::window::Window,winit::platform_impl::platform::event_lo
+  26: std::panicking::try<tuple$<>,core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::event_loop::runner::impl$3::call_event_handler::closure_env$0<tuple$<> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\panicking.rs:518
+  27: std::panic::catch_unwind<core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::event_loop::runner::impl$3::call_event_handler::closure_env$0<tuple$<> > >,tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\panic.rs:142
+  28: winit::platform_impl::platform::event_loop::runner::EventLoopRunner<tuple$<> >::catch_unwind<tuple$<>,tuple$<>,winit::platform_impl::platform::event_loop::runner::impl$3::call_event_handler::closure_env$0<tuple$<> > >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop\runner.rs:183
+  29: winit::platform_impl::platform::event_loop::runner::EventLoopRunner<tuple$<> >::call_event_handler<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop\runner.rs:246
+  30: winit::platform_impl::platform::event_loop::runner::EventLoopRunner<tuple$<> >::send_event<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop\runner.rs:236
+  31: winit::platform_impl::platform::event_loop::WindowData<tuple$<> >::send_event<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:112
+  32: winit::platform_impl::platform::event_loop::public_window_callback_inner::closure$4<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:1571
+  33: core::ops::function::FnOnce::call_once<winit::platform_impl::platform::event_loop::public_window_callback_inner::closure_env$4<tuple$<> >,tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\ops\function.rs:250
+  34: core::panic::unwind_safe::impl$23::call_once<tuple$<>,winit::platform_impl::platform::event_loop::public_window_callback_inner::closure_env$4<tuple$<> > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\panic\unwind_safe.rs:272
+  35: std::panicking::try::do_call<core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::event_loop::public_window_callback_inner::closure_env$4<tuple$<> > >,tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\panicking.rs:554
+  36: std::panicking::try::do_catch<core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::window::impl$2::on_nccreate::closure_env$0<tuple$<> > >,tuple$<winit::platform_impl::platform::window::Window,winit::platform_impl::platform::event_lo
+  37: std::panicking::try<tuple$<>,core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::event_loop::public_window_callback_inner::closure_env$4<tuple$<> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\panicking.rs:518
+  38: std::panic::catch_unwind<core::panic::unwind_safe::AssertUnwindSafe<winit::platform_impl::platform::event_loop::public_window_callback_inner::closure_env$4<tuple$<> > >,tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\panic.rs:142
+  39: winit::platform_impl::platform::event_loop::runner::EventLoopRunner<tuple$<> >::catch_unwind<tuple$<>,tuple$<>,winit::platform_impl::platform::event_loop::public_window_callback_inner::closure_env$4<tuple$<> > >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop\runner.rs:183
+  40: winit::platform_impl::platform::event_loop::public_window_callback_inner<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:2285
+  41: winit::platform_impl::platform::event_loop::public_window_callback<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:983
+  42: DispatchMessageW
+  43: CallWindowProcW
+  44: wglSwapBuffers
+  45: DispatchMessageW
+  46: DispatchMessageW
+  47: winit::platform_impl::platform::event_loop::EventLoop<tuple$<> >::dispatch_peeked_messages<tuple$<> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:449
+  48: winit::platform_impl::platform::event_loop::EventLoop<tuple$<> >::run_on_demand<tuple$<>,mapeditor::main::async_block$0::closure_env$2>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:247
+  49: winit::platform_impl::platform::event_loop::EventLoop<tuple$<> >::run<tuple$<>,mapeditor::main::async_block$0::closure_env$2>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\platform_impl\windows\event_loop.rs:218
+  50: winit::event_loop::EventLoop<tuple$<> >::run<tuple$<>,mapeditor::main::async_block$0::closure_env$2>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\winit-0.29.15\src\event_loop.rs:249
+  51: mapeditor::main::async_block$0
+             at src\main.rs:273
+  52: tokio::runtime::park::impl$4::block_on::closure$0<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\park.rs:281
+  53: tokio::runtime::coop::with_budget
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\coop.rs:107
+  54: tokio::runtime::coop::budget
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\coop.rs:73
+  55: tokio::runtime::park::CachedParkThread::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\park.rs:281
+  56: tokio::runtime::context::blocking::BlockingRegionGuard::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\context\blocking.rs:66
+  57: tokio::runtime::scheduler::multi_thread::impl$0::block_on::closure$0<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\scheduler\multi_thread\mod.rs:87
+  58: tokio::runtime::context::runtime::enter_runtime<tokio::runtime::scheduler::multi_thread::impl$0::block_on::closure_env$0<enum2$<mapeditor::main::async_block_env$0> >,enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > 
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\context\runtime.rs:65
+  59: tokio::runtime::scheduler::multi_thread::MultiThread::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\scheduler\multi_thread\mod.rs:86
+  60: tokio::runtime::runtime::Runtime::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\runtime.rs:350
+  61: mapeditor::main
+             at src\main.rs:507
+  62: core::ops::function::FnOnce::call_once<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > (*)(),tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\ops\function.rs:250
+  63: std::sys_common::backtrace::__rust_begin_short_backtrace<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > (*)(),enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\sys_common\backtrace.rs:155
+  64: std::rt::lang_start::closure$0<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\rt.rs:166
+  65: std::rt::lang_start_internal::closure$2
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\rt.rs:148
+  66: std::panicking::try::do_call
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:554
+  67: std::panicking::try
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:518
+  68: std::panic::catch_unwind
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panic.rs:142
+  69: std::rt::lang_start_internal
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\rt.rs:148
+  70: std::rt::lang_start<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\rt.rs:165
+  71: main
+  72: invoke_main
+             at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+  73: __scrt_common_main_seh
+             at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+  74: BaseThreadInitThunk
+  75: RtlUserThreadStart
+
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }

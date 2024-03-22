@@ -726,7 +726,7 @@ impl Interface {
         let attribute =
             MapAttribute::convert_to_plain_enum(self.current_tab_data + 1);
         match attribute {
-            MapAttribute::Warp(_, _, _, _, _) => {
+            MapAttribute::Warp(_) => {
                 let (mut mx, mut my, mut mg, mut tx, mut ty) =
                     (0_i32, 0_i32, 0_u64, 0_u32, 0_u32);
                 for (index, textbox) in self.editor_textbox.iter().enumerate() {
@@ -749,24 +749,38 @@ impl Interface {
                         }
                     }
                 }
-                MapAttribute::Warp(mx, my, mg, tx, ty)
+                MapAttribute::Warp(WarpData {
+                    map_x: mx,
+                    map_y: my,
+                    map_group: mg,
+                    tile_x: tx,
+                    tile_y: ty,
+                })
             }
             MapAttribute::Sign(_) => {
                 let text = self.editor_textbox[0].data.clone();
                 MapAttribute::Sign(text)
             }
-            MapAttribute::ItemSpawn(_, _) => {
-                let (itemindex, timer) = (
+            MapAttribute::ItemSpawn(_) => {
+                let (itemindex, value, timer) = (
                     self.editor_textbox[0]
                         .data
                         .parse::<u32>()
                         .unwrap_or_default(),
                     self.editor_textbox[1]
                         .data
+                        .parse::<u16>()
+                        .unwrap_or_default(),
+                    self.editor_textbox[2]
+                        .data
                         .parse::<u64>()
                         .unwrap_or_default(),
                 );
-                MapAttribute::ItemSpawn(itemindex, timer)
+                MapAttribute::ItemSpawn(ItemSpawnData {
+                    index: itemindex,
+                    amount: value,
+                    timer,
+                })
             }
             _ => attribute,
         }
