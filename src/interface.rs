@@ -755,6 +755,19 @@ impl Interface {
                 let text = self.editor_textbox[0].data.clone();
                 MapAttribute::Sign(text)
             }
+            MapAttribute::ItemSpawn(_, _) => {
+                let (itemindex, timer) = (
+                    self.editor_textbox[0]
+                        .data
+                        .parse::<u32>()
+                        .unwrap_or_default(),
+                    self.editor_textbox[1]
+                        .data
+                        .parse::<u64>()
+                        .unwrap_or_default(),
+                );
+                MapAttribute::ItemSpawn(itemindex, timer)
+            }
             _ => attribute,
         }
     }

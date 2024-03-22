@@ -132,6 +132,12 @@ fn interact_with_map(
                         MapAttribute::Sign(text) => {
                             vec![InsertTypes::Str(text)]
                         }
+                        MapAttribute::ItemSpawn(itemindex, timer) => {
+                            vec![
+                                InsertTypes::UInt(itemindex as u64),
+                                InsertTypes::UInt(timer),
+                            ]
+                        }
                         _ => vec![],
                     };
                     gui.select_tab_option(
