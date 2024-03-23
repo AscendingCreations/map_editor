@@ -1,7 +1,7 @@
 use graphics::*;
 use serde::{Deserialize, Serialize};
 
-pub const MAX_ATTRIBUTE: usize = 5;
+pub const MAX_ATTRIBUTE: usize = 6;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct WarpData {
@@ -23,6 +23,7 @@ pub struct ItemSpawnData {
 pub enum MapAttribute {
     Walkable,
     Blocked,
+    NpcBlocked,
     Warp(WarpData),
     Sign(String),
     ItemSpawn(ItemSpawnData),
@@ -65,9 +66,10 @@ impl MapAttribute {
         match attribute {
             0 => "Walkable",
             1 => "Blocked",
-            2 => "Warp",
-            3 => "Sign",
-            4 => "Item",
+            2 => "NpcBlocked",
+            3 => "Warp",
+            4 => "Sign",
+            5 => "Item",
             _ => "",
         }
     }
@@ -75,6 +77,7 @@ impl MapAttribute {
     pub fn as_map_str<'a>(attribute: &MapAttribute) -> &'a str {
         match attribute {
             MapAttribute::Blocked => "B",
+            MapAttribute::NpcBlocked => "N",
             MapAttribute::Warp(_) => "W",
             MapAttribute::Sign(_) => "S",
             MapAttribute::ItemSpawn(_) => "I",
@@ -85,6 +88,7 @@ impl MapAttribute {
     pub fn get_color(attribute: &MapAttribute) -> Color {
         match attribute {
             MapAttribute::Blocked => Color::rgba(200, 10, 10, 100),
+            MapAttribute::NpcBlocked => Color::rgba(200, 50, 10, 100),
             MapAttribute::Warp(_) => Color::rgba(10, 10, 200, 100),
             MapAttribute::Sign(_) => Color::rgba(10, 200, 10, 100),
             MapAttribute::ItemSpawn(_) => Color::rgba(180, 180, 180, 100),
@@ -95,15 +99,16 @@ impl MapAttribute {
     pub fn convert_to_enum(attribute: u32, data: &[InsertTypes]) -> Self {
         match attribute {
             1 => MapAttribute::Blocked,
-            2 => MapAttribute::Warp(WarpData {
+            2 => MapAttribute::NpcBlocked,
+            3 => MapAttribute::Warp(WarpData {
                 map_x: data[0].get_int() as i32,
                 map_y: data[1].get_int() as i32,
                 map_group: data[2].get_uint(),
                 tile_x: data[3].get_uint() as u32,
                 tile_y: data[4].get_uint() as u32,
             }),
-            3 => MapAttribute::Sign(data[0].get_string()),
-            4 => MapAttribute::ItemSpawn(ItemSpawnData {
+            4 => MapAttribute::Sign(data[0].get_string()),
+            5 => MapAttribute::ItemSpawn(ItemSpawnData {
                 index: data[0].get_uint() as u32,
                 amount: data[1].get_uint() as u16,
                 timer: data[1].get_uint(),
@@ -115,9 +120,10 @@ impl MapAttribute {
     pub fn convert_to_plain_enum(attribute: u32) -> Self {
         match attribute {
             1 => MapAttribute::Blocked,
-            2 => MapAttribute::Warp(WarpData::default()),
-            3 => MapAttribute::Sign(String::new()),
-            4 => MapAttribute::ItemSpawn(ItemSpawnData::default()),
+            2 => MapAttribute::NpcBlocked,
+            3 => MapAttribute::Warp(WarpData::default()),
+            4 => MapAttribute::Sign(String::new()),
+            5 => MapAttribute::ItemSpawn(ItemSpawnData::default()),
             _ => MapAttribute::Walkable,
         }
     }
@@ -125,9 +131,10 @@ impl MapAttribute {
     pub fn convert_to_num(attribute: &MapAttribute) -> u32 {
         match attribute {
             MapAttribute::Blocked => 1,
-            MapAttribute::Warp(_) => 2,
-            MapAttribute::Sign(_) => 3,
-            MapAttribute::ItemSpawn(_) => 4,
+            MapAttribute::NpcBlocked => 2,
+            MapAttribute::Warp(_) => 3,
+            MapAttribute::Sign(_) => 4,
+            MapAttribute::ItemSpawn(_) => 5,
             _ => 0,
         }
     }
