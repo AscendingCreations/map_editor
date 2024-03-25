@@ -1,7 +1,7 @@
 use graphics::*;
 use serde::{Deserialize, Serialize};
 
-pub const MAX_ATTRIBUTE: usize = 6;
+pub const MAX_ATTRIBUTE: usize = 7;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct WarpData {
@@ -27,6 +27,7 @@ pub enum MapAttribute {
     Warp(WarpData),
     Sign(String),
     ItemSpawn(ItemSpawnData),
+    Storage,
     Count,
 }
 
@@ -70,6 +71,7 @@ impl MapAttribute {
             3 => "Warp",
             4 => "Sign",
             5 => "Item",
+            6 => "Storage",
             _ => "",
         }
     }
@@ -81,6 +83,7 @@ impl MapAttribute {
             MapAttribute::Warp(_) => "W",
             MapAttribute::Sign(_) => "S",
             MapAttribute::ItemSpawn(_) => "I",
+            MapAttribute::Storage => "S",
             _ => "",
         }
     }
@@ -92,6 +95,7 @@ impl MapAttribute {
             MapAttribute::Warp(_) => Color::rgba(10, 10, 200, 100),
             MapAttribute::Sign(_) => Color::rgba(10, 200, 10, 100),
             MapAttribute::ItemSpawn(_) => Color::rgba(180, 180, 180, 100),
+            MapAttribute::Storage => Color::rgba(160, 170, 20, 255),
             _ => Color::rgba(0, 0, 0, 0),
         }
     }
@@ -113,6 +117,7 @@ impl MapAttribute {
                 amount: data[1].get_uint() as u16,
                 timer: data[1].get_uint(),
             }),
+            6 => MapAttribute::Storage,
             _ => MapAttribute::Walkable,
         }
     }
@@ -124,6 +129,7 @@ impl MapAttribute {
             3 => MapAttribute::Warp(WarpData::default()),
             4 => MapAttribute::Sign(String::new()),
             5 => MapAttribute::ItemSpawn(ItemSpawnData::default()),
+            6 => MapAttribute::Storage,
             _ => MapAttribute::Walkable,
         }
     }
@@ -135,6 +141,7 @@ impl MapAttribute {
             MapAttribute::Warp(_) => 3,
             MapAttribute::Sign(_) => 4,
             MapAttribute::ItemSpawn(_) => 5,
+            MapAttribute::Storage => 6,
             _ => 0,
         }
     }
