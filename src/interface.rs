@@ -782,6 +782,13 @@ impl Interface {
                     timer,
                 })
             }
+            MapAttribute::Shop(_) => {
+                let shop_index = self.editor_textbox[0]
+                    .data
+                    .parse::<u16>()
+                    .unwrap_or_default();
+                MapAttribute::Shop(shop_index)
+            }
             _ => attribute,
         }
     }

@@ -307,6 +307,7 @@ impl MapView {
                     InsertTypes::UInt(itemdata.timer),
                 ]
             }
+            MapAttribute::Shop(index) => vec![InsertTypes::UInt(index as u64)],
             _ => vec![],
         };
         self.record.push_undo(
@@ -367,6 +368,9 @@ impl MapView {
                         InsertTypes::UInt(itemdata.amount as u64),
                         InsertTypes::UInt(itemdata.timer),
                     ]
+                }
+                MapAttribute::Shop(index) => {
+                    vec![InsertTypes::UInt(index as u64)]
                 }
                 _ => vec![],
             };
@@ -930,6 +934,9 @@ impl MapView {
                                     InsertTypes::UInt(itemdata.amount as u64),
                                     InsertTypes::UInt(itemdata.timer),
                                 ]
+                            }
+                            MapAttribute::Shop(index) => {
+                                vec![InsertTypes::UInt(index as u64)]
                             }
                             _ => vec![],
                         };

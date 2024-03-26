@@ -243,6 +243,13 @@ pub fn interface_key_input(
                         result = true;
                     }
                 }
+                MapAttribute::Shop(_) => {
+                    if gui.selected_textbox >= 0 {
+                        gui.editor_textbox[gui.selected_textbox as usize]
+                            .enter_numeric(systems, event, 6, false);
+                        result = true;
+                    }
+                }
                 _ => {}
             }
         }
@@ -827,7 +834,7 @@ pub fn open_attribute_settings(
                 gui.editor_label.push(systems.gfx.add_text(text, 1));
             }
 
-            gui.editor_textbox = Vec::with_capacity(2);
+            gui.editor_textbox = Vec::with_capacity(3);
             for i in 0..3 {
                 let pos = systems.gfx.get_pos(gui.tab_opt_bg[0]);
                 let textbox_pos = match i {
@@ -867,6 +874,44 @@ pub fn open_attribute_settings(
                 gui.editor_textbox[0].input_text(systems, "0".to_string());
                 gui.editor_textbox[1].input_text(systems, "0".to_string());
                 gui.editor_textbox[2].input_text(systems, "0".to_string());
+            }
+        }
+        MapAttribute::Shop(_) => {
+            gui.editor_label = Vec::with_capacity(1);
+            let mut ajdust_pos = systems.gfx.get_pos(gui.tab_opt_bg[0]);
+            ajdust_pos += Vec3::new(10.0, 368.0, 0.0);
+            let mut text = create_basic_label(
+                systems,
+                Vec3::new(ajdust_pos.x, ajdust_pos.y, ORDER_ATTRIBUTE_LABEL),
+                Vec2::new(100.0, 20.0),
+                Color::rgba(180, 180, 180, 255),
+            );
+            text.set_text(
+                &mut systems.renderer,
+                "Index",
+                Attrs::new(),
+                Shaping::Advanced,
+            );
+            gui.editor_label.push(systems.gfx.add_text(text, 1));
+
+            gui.editor_textbox = Vec::with_capacity(1);
+            let pos = systems.gfx.get_pos(gui.tab_opt_bg[0]);
+            let textbox_pos =
+                Vec3::new(pos.x + 65.0, pos.y + 368.0, ORDER_ATTRIBUTE_TEXTBOX);
+            gui.editor_textbox.push(Textbox::new(
+                systems,
+                textbox_pos,
+                Vec2::new(60.0, 22.0),
+                false,
+                [0, 1],
+            ));
+
+            // If data exist, place the data on textbox
+            if !data.is_empty() {
+                gui.editor_textbox[0]
+                    .input_text(systems, data[0].get_uint().to_string());
+            } else {
+                gui.editor_textbox[0].input_text(systems, "0".to_string());
             }
         }
         _ => {}

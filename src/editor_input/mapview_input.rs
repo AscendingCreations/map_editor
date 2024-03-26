@@ -139,6 +139,9 @@ fn interact_with_map(
                                 InsertTypes::UInt(itemdata.timer),
                             ]
                         }
+                        MapAttribute::Shop(index) => {
+                            vec![InsertTypes::UInt(index as u64)]
+                        }
                         _ => vec![],
                     };
                     gui.select_tab_option(
