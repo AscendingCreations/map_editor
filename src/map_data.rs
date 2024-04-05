@@ -1,7 +1,6 @@
 use graphics::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_repr::*;
 use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::path::Path;
@@ -175,6 +174,7 @@ impl EditorData {
                 }
             }
             mapdata.weather = Weather::None; //ToDo mapview.fixed_weather;
+            mapdata.music = mapview.music.clone();
             if should_save {
                 mapdata.save_file().unwrap();
                 // Since we have saved the map, let's mark the map as 'no change'
@@ -293,6 +293,7 @@ impl EditorData {
                 }
             }
             map.fixed_weather = 0; //ToDo mapdata.weather;
+            map.music = mapdata.music.clone();
         }
     }
 
@@ -428,16 +429,8 @@ pub struct MapPosition {
 }
 
 #[derive(
-    Copy,
-    Clone,
-    Serialize_repr,
-    Deserialize_repr,
-    PartialEq,
-    Eq,
-    Default,
-    Debug,
+    Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Default, Debug,
 )]
-#[repr(u8)]
 pub enum Weather {
     #[default]
     None,
@@ -464,7 +457,7 @@ pub struct MapData {
     pub attribute: Vec<MapAttribute>,
     pub zonespawns: [Vec<(u16, u16)>; 5],
     pub zones: [(u64, [Option<u64>; 5]); 5],
-    pub music: u32,
+    pub music: Option<String>,
     pub weather: Weather,
 }
 
@@ -480,14 +473,16 @@ impl MapData {
             attribute: vec![MapAttribute::Walkable; 1024],
             zonespawns: Default::default(),
             zones: Default::default(),
-            music: 0,
+            music: None,
             weather: Weather::default(),
         }
     }
 
     pub fn save_file(&self) -> Result<(), AscendingError> {
-        let name =
-            format!("./data/maps/{}_{}_{}.json", self.position.x, self.position.y, self.position.group);
+        let name = format!(
+            "./data/maps/{}_{}_{}.json",
+            self.position.x, self.position.y, self.position.group
+        );
 
         match OpenOptions::new().truncate(true).write(true).open(&name) {
             Ok(file) => {

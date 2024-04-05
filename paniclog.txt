@@ -1060,3 +1060,48 @@ INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::fr
 WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
 WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
 INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }

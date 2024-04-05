@@ -105,7 +105,7 @@ pub fn interface_input(
                         let click_button =
                             gui.click_selectionbox(systems, screen_pos);
                         if let Some(selection_index) = click_button {
-                            if selection_index == 0 {
+                            if matches!(selection_index, 0 | 1) {
                                 if !gui.editor_selectionbox[selection_index]
                                     .is_list_visible
                                 {
@@ -118,7 +118,7 @@ pub fn interface_input(
                                         .hide_list(systems);
                                     gui.selected_dropbox = -1;
                                 }
-                            } // Weather
+                            } // Weather & Music
                         }
 
                         // Dropdown List
@@ -131,14 +131,36 @@ pub fn interface_input(
                                     [gui.selected_dropbox as usize]
                                     .switch_list(systems, selection_index);
 
-                                if gui.selected_dropbox == 0 {
-                                    mapview.fixed_weather = gui
-                                        .editor_selectionbox
-                                        [gui.selected_dropbox as usize]
-                                        .selected_index
-                                        as u8;
-                                    database.set_map_change(mapview);
-                                    update_map_name(systems, gui, database);
+                                match gui.selected_dropbox {
+                                    0 => {
+                                        mapview.fixed_weather = gui
+                                            .editor_selectionbox
+                                            [gui.selected_dropbox as usize]
+                                            .selected_index
+                                            as u8;
+                                        database.set_map_change(mapview);
+                                        update_map_name(systems, gui, database);
+                                    }
+                                    1 => {
+                                        let index = gui.editor_selectionbox
+                                            [gui.selected_dropbox as usize]
+                                            .selected_index;
+                                        if index == 0 {
+                                            mapview.music = None;
+                                        } else {
+                                            let list_name = gui
+                                                .editor_selectionbox
+                                                [gui.selected_dropbox as usize]
+                                                .list[index]
+                                                .clone();
+                                            mapview.music = Some(list_name);
+                                            database.set_map_change(mapview);
+                                            update_map_name(
+                                                systems, gui, database,
+                                            );
+                                        }
+                                    }
+                                    _ => {}
                                 }
 
                                 gui.editor_selectionbox
@@ -625,6 +647,51 @@ pub fn set_tab(
                 );
                 selectionbox
                     .switch_list(systems, mapview.fixed_weather as usize);
+                gui.editor_selectionbox.push(selectionbox);
+
+                let mut audio_list = systems.audio_list.audio.clone();
+                audio_list.insert(0, "None".to_string());
+
+                let mut text = create_basic_label(
+                    systems,
+                    Vec3::new(
+                        content_pos.x,
+                        content_pos.y - 54.0,
+                        ORDER_ATTRIBUTE_LABEL,
+                    ),
+                    Vec2::new(100.0, 20.0),
+                    Color::rgba(180, 180, 180, 255),
+                );
+                text.set_text(
+                    &mut systems.renderer,
+                    "Music",
+                    Attrs::new(),
+                    Shaping::Advanced,
+                );
+                gui.editor_label.push(systems.gfx.add_text(text, 1));
+
+                let mut selectionbox = SelectionBox::new(
+                    systems,
+                    Vec2::new(content_pos.x, content_pos.y - 78.0),
+                    [
+                        ORDER_PROPERTIES_BUTTON,
+                        ORDER_PROPERTIES_BUTTON_TEXT,
+                        ORDER_DROPDOWN_WINDOW,
+                        ORDER_DROPDOWN_SELECTION,
+                        ORDER_DROPDOWN_TEXT,
+                        ORDER_DROPDOWN_SCROLLBAR,
+                    ],
+                    168.0,
+                    audio_list.clone(),
+                    0,
+                );
+                if let Some(data) = &mapview.music {
+                    if let Some(index) =
+                        audio_list.iter().position(|name| *name == *data)
+                    {
+                        selectionbox.switch_list(systems, index);
+                    }
+                }
                 gui.editor_selectionbox.push(selectionbox);
             }
             _ => {}

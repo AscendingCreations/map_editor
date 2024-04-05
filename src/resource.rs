@@ -1,8 +1,38 @@
 use indexmap::IndexMap;
+use std::fs;
+use std::io;
 use std::path::Path;
 
 use crate::collection::TEXTURE_SIZE;
 use graphics::*;
+
+#[derive(Default, Debug, Clone)]
+pub struct AudioCollection {
+    pub audio: Vec<String>,
+}
+
+impl AudioCollection {
+    pub fn new() -> Self {
+        let entries = match fs::read_dir("./audio") {
+            Ok(data) => data,
+            Err(_) => return AudioCollection::default(),
+        };
+
+        let mut audio = Vec::new();
+
+        entries.for_each(|entry| {
+            if let Ok(entry_data) = entry {
+                let file_name = entry_data.file_name();
+                let file_name_str = file_name.to_string_lossy().into_owned();
+                audio.push(file_name_str);
+            }
+        });
+
+        println!("{:?}", audio);
+
+        AudioCollection { audio }
+    }
+}
 
 pub struct TextureData {
     pub name: String,

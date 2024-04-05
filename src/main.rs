@@ -203,6 +203,7 @@ async fn main() -> Result<(), AscendingError> {
         size,
         scale,
         resource,
+        audio_list: AudioCollection::new(),
     };
 
     // Initiate map editor data

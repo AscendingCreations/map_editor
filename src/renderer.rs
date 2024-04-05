@@ -2,12 +2,8 @@ use graphics::*;
 use winit::dpi::PhysicalSize;
 
 use crate::{
-    interface::*, 
-    ConfigData,
-    gfx_collection::*,
-    MapView,
-    TextureAllocation,
-    Tileset,
+    gfx_collection::*, interface::*, AudioCollection, ConfigData, MapView,
+    TextureAllocation, Tileset,
 };
 
 pub struct DrawSetting {
@@ -16,6 +12,7 @@ pub struct DrawSetting {
     pub size: PhysicalSize<f32>,
     pub scale: f64,
     pub resource: TextureAllocation,
+    pub audio_list: AudioCollection,
 }
 
 pub struct Graphics<Controls>
@@ -88,51 +85,77 @@ where
         );
 
         pass.render_map(renderer, &self.map_renderer, &self.map_atlas, 0);
-        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 0);
+        pass.render_image(renderer, &self.image_renderer, &self.image_atlas, 0);
         pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 0);
         pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 1);
 
-        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 2);
+        pass.render_image(renderer, &self.image_renderer, &self.image_atlas, 2);
         pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 2);
         pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 3);
 
-        pass.render_image(renderer,&self.image_renderer, &self.image_atlas, 4);
+        pass.render_image(renderer, &self.image_renderer, &self.image_atlas, 4);
         pass.render_rects(renderer, &self.ui_renderer, &self.ui_atlas, 4);
         pass.render_text(renderer, &self.text_renderer, &self.text_atlas, 5);
     }
 }
 
 pub fn add_image_to_buffer<Controls>(
-        systems: &mut DrawSetting, 
-        graphics: &mut Graphics<Controls>,
-        mapview: &mut MapView,
-        gui: &mut Interface,
-        tileset: &mut Tileset,
+    systems: &mut DrawSetting,
+    graphics: &mut Graphics<Controls>,
+    mapview: &mut MapView,
+    gui: &mut Interface,
+    tileset: &mut Tileset,
 ) where
-    Controls: camera::controls::Controls, 
+    Controls: camera::controls::Controls,
 {
     systems.gfx.collection.iter_mut().for_each(|data| {
         if data.1.visible {
             match &mut data.1.gfx {
                 GfxType::Image(image) => {
-                    graphics.image_renderer.image_update(image, &mut systems.renderer, &mut graphics.image_atlas, data.1.layer);
-                },
+                    graphics.image_renderer.image_update(
+                        image,
+                        &mut systems.renderer,
+                        &mut graphics.image_atlas,
+                        data.1.layer,
+                    );
+                }
                 GfxType::Rect(rect) => {
-                    graphics.ui_renderer.rect_update(rect, &mut systems.renderer, &mut graphics.ui_atlas, data.1.layer);
-                },
+                    graphics.ui_renderer.rect_update(
+                        rect,
+                        &mut systems.renderer,
+                        &mut graphics.ui_atlas,
+                        data.1.layer,
+                    );
+                }
                 GfxType::Text(text) => {
-                    graphics.text_renderer
-                        .text_update(text, &mut graphics.text_atlas, &mut systems.renderer, data.1.layer)
+                    graphics
+                        .text_renderer
+                        .text_update(
+                            text,
+                            &mut graphics.text_atlas,
+                            &mut systems.renderer,
+                            data.1.layer,
+                        )
                         .unwrap();
-                },
+                }
             }
         }
     });
 
     mapview.maps.iter_mut().for_each(|map| {
-        graphics.map_renderer.map_update(map, &mut systems.renderer, &mut graphics.map_atlas, [0, 0]);
+        graphics.map_renderer.map_update(
+            map,
+            &mut systems.renderer,
+            &mut graphics.map_atlas,
+            [0, 0],
+        );
     });
     if gui.current_tab == TAB_LAYER {
-        graphics.map_renderer.map_update(&mut tileset.map, &mut systems.renderer, &mut graphics.map_atlas, [0, 0]); // Tileset
+        graphics.map_renderer.map_update(
+            &mut tileset.map,
+            &mut systems.renderer,
+            &mut graphics.map_atlas,
+            [0, 0],
+        ); // Tileset
     }
 }
