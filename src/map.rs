@@ -64,17 +64,18 @@ impl DirBlockTile {
     pub fn set_data(
         &mut self,
         systems: &mut DrawSetting,
-        dir_visible: [bool; 4],
+        dir_visible: [bool; 4], // Up, Left, Down, Right
     ) {
+        // B0 = Down, B1 = Up, B2 = Left, B3 = Right
         let mut dir_data = 0;
         if dir_visible[0] {
-            dir_data.set(B0);
-        }
-        if dir_visible[1] {
             dir_data.set(B1);
         }
-        if dir_visible[2] {
+        if dir_visible[1] {
             dir_data.set(B2);
+        }
+        if dir_visible[2] {
+            dir_data.set(B0);
         }
         if dir_visible[3] {
             dir_data.set(B3);
@@ -89,15 +90,16 @@ impl DirBlockTile {
     pub fn set_data_bit(&mut self, systems: &mut DrawSetting, dir: u8) {
         self.dir_data = dir;
 
-        let mut dir_visible = [false; 4];
+        // B0 = Down, B1 = Up, B2 = Left, B3 = Right
+        let mut dir_visible = [false; 4]; // Up, Left, Down, Right
         if self.dir_data.get(B0) == 0b00000001 {
-            dir_visible[0] = true;
+            dir_visible[2] = true;
         }
         if self.dir_data.get(B1) == 0b00000010 {
-            dir_visible[1] = true;
+            dir_visible[0] = true;
         }
         if self.dir_data.get(B2) == 0b00000100 {
-            dir_visible[2] = true;
+            dir_visible[1] = true;
         }
         if self.dir_data.get(B3) == 0b00001000 {
             dir_visible[3] = true;
