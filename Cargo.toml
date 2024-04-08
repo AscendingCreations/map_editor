@@ -18,13 +18,18 @@ serde = { version = "1.0.188", features = ["derive"] }
 log = "0.4.20"
 backtrace = "0.3.69"
 futures = "0.3.28"
-chrono = { version = "0.4.30", disable-defaults = true, features = ["clock", "serde", "std"] }
+chrono = { version = "0.4.30", disable-defaults = true, features = [
+    "clock",
+    "serde",
+    "std",
+] }
 ubits = "0.3.1"
 hecs = "0.10.3"
 glam = { version = "0.24.1", features = ["bytemuck", "mint"] }
 serde_json = "1.0.82"
 indexmap = "2.1.0"
 slab = "0.4.9"
+bit_op = "0.1.1"
 
 [dependencies.camera]
 git = "https://github.com/AscendingCreations/AscendingLibraries"

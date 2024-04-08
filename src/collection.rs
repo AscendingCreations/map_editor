@@ -8,6 +8,7 @@ pub const ORDER_ATTRIBUTE_BG: f32 = 11.84;
 pub const ORDER_ATTRIBUTE_HEADER_BG: f32 = 11.8;
 pub const ORDER_ATTRIBUTE_LABEL: f32 = 11.7;
 pub const ORDER_ATTRIBUTE_TEXTBOX: f32 = 11.7;
+pub const ORDER_ATTRIBUTE_RECT: f32 = 11.7;
 pub const ORDER_OPTION_BUTTON: f32 = 11.75;
 pub const ORDER_OPTION_BUTTON_TEXT: f32 = 11.74;
 pub const ORDER_PROPERTIES_BUTTON: f32 = 11.85;
@@ -25,6 +26,7 @@ pub const ORDER_TAB_LABEL: f32 = 11.5;
 // Upper Map Order 5.1 - 5.0
 pub const ORDER_MAP_ATTRIBUTE_BG: f32 = 4.9;
 pub const ORDER_MAP_ZONE: f32 = 4.9;
+pub const ORDER_MAP_DIRBLOCK: f32 = 4.9;
 pub const ORDER_MAP_ATTRIBUTE_TEXT: f32 = 4.8;
 pub const ORDER_MAP_SELECTION: f32 = 4.0;
 pub const ORDER_MAP_LINK_SELECT: f32 = 4.0;

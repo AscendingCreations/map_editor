@@ -159,6 +159,8 @@ impl EditorData {
                     });
                     mapdata.attribute[tile_num] =
                         mapview.map_attributes[tile_num].attribute.clone();
+                    mapdata.dir_block[tile_num] =
+                        mapview.map_dir_block[tile_num].dir_data;
                 });
             });
             for i in 0..5 {
@@ -277,6 +279,8 @@ impl EditorData {
                         systems,
                         mapdata.attribute[tile_num].clone(),
                     );
+                    map.map_dir_block[tile_num].dir_data =
+                        mapdata.dir_block[tile_num];
                 });
             });
             for i in 0..5 {
@@ -454,6 +458,7 @@ pub struct Tile {
 pub struct MapData {
     pub position: MapPosition,
     pub tile: Vec<Tile>,
+    pub dir_block: Vec<u8>,
     pub attribute: Vec<MapAttribute>,
     pub zonespawns: [Vec<(u16, u16)>; 5],
     pub zones: [(u64, [Option<u64>; 5]); 5],
@@ -470,6 +475,7 @@ impl MapData {
                 group: group as i32,
             },
             tile: vec![Tile { id: vec![0; 1024] }; 9],
+            dir_block: vec![0; 1024],
             attribute: vec![MapAttribute::Walkable; 1024],
             zonespawns: Default::default(),
             zones: Default::default(),

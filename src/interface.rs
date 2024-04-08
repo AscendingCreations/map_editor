@@ -66,11 +66,13 @@ pub struct Interface {
     pub start_view: usize,
     pub tab_opt_bg: Vec<usize>,
     pub editor_label: Vec<usize>,
+    pub editor_rect: Vec<usize>,
     pub editor_textbox: Vec<Textbox>,
     pub editor_button: Vec<Button>,
     pub editor_selectionbox: Vec<SelectionBox>,
     pub selected_textbox: i32,
     pub selected_dropbox: i32,
+    pub dir_select: [bool; 4],
 }
 
 impl Interface {
@@ -312,11 +314,13 @@ impl Interface {
             current_selected_area: 0,
             tab_opt_bg,
             editor_label: Vec::new(),
+            editor_rect: Vec::new(),
             editor_textbox: Vec::new(),
             editor_button: Vec::new(),
             editor_selectionbox: Vec::new(),
             selected_textbox: -1,
             selected_dropbox: -1,
+            dir_select: [false; 4],
         }
     }
 

@@ -168,6 +168,8 @@ pub fn interface_input(
                                     .hide_list(systems);
                             }
                         }
+
+                        click_dir_block(systems, gui, screen_pos);
                     }
                     _ => {}
                 }
@@ -362,6 +364,13 @@ pub fn set_tab(
             systems.gfx.set_visible(attribute.image, false);
         });
 
+        mapview.map_dir_block.iter_mut().for_each(|dir_block| {
+            systems.gfx.set_visible(dir_block.bg, false);
+            for i in 0..4 {
+                systems.gfx.set_visible(dir_block.dir[i], false);
+            }
+        });
+
         systems.gfx.set_visible(gui.scrollbar_bg, false);
 
         if !gui.editor_label.is_empty() {
@@ -369,7 +378,15 @@ pub fn set_tab(
                 systems.gfx.remove_gfx(*label);
             });
         }
-        gui.editor_label = vec![];
+        gui.editor_label.clear();
+
+        if !gui.editor_rect.is_empty() {
+            gui.editor_rect.iter().for_each(|rect| {
+                systems.gfx.remove_gfx(*rect);
+            });
+        }
+        gui.editor_rect.clear();
+        gui.dir_select = [false; 4];
 
         gui.editor_selectionbox
             .iter_mut()
@@ -573,6 +590,14 @@ pub fn set_tab(
             TAB_PROPERTIES => {
                 systems.gfx.set_visible(gui.tab_opt_bg[0], true);
 
+                mapview.map_dir_block.iter_mut().for_each(|dir_block| {
+                    systems.gfx.set_visible(dir_block.bg, true);
+                    for i in 0..4 {
+                        systems.gfx.set_visible(dir_block.dir[i], true);
+                    }
+                    dir_block.update(systems);
+                });
+
                 let pos = systems.gfx.get_pos(gui.tab_opt_bg[0]);
                 gui.editor_button = vec![
                     Button::new(
@@ -693,6 +718,64 @@ pub fn set_tab(
                     }
                 }
                 gui.editor_selectionbox.push(selectionbox);
+
+                let mut text = create_basic_label(
+                    systems,
+                    Vec3::new(
+                        content_pos.x,
+                        content_pos.y - 150.0,
+                        ORDER_ATTRIBUTE_LABEL,
+                    ),
+                    Vec2::new(150.0, 20.0),
+                    Color::rgba(180, 180, 180, 255),
+                );
+                text.set_text(
+                    &mut systems.renderer,
+                    "Direction Block",
+                    Attrs::new(),
+                    Shaping::Advanced,
+                );
+                gui.editor_label.push(systems.gfx.add_text(text, 1));
+
+                for i in 0..4 {
+                    let mut bg_rect = Rect::new(&mut systems.renderer, 0);
+                    bg_rect
+                        .set_size(Vec2::new(32.0, 32.0))
+                        .set_border_width(1.0)
+                        .set_color(Color::rgba(100, 100, 100, 255))
+                        .set_border_color(Color::rgba(40, 40, 40, 255));
+                    match i {
+                        0 => {
+                            bg_rect.set_position(Vec3::new(
+                                content_pos.x + 32.0,
+                                content_pos.y - 192.0,
+                                ORDER_ATTRIBUTE_RECT,
+                            ));
+                        }
+                        1 => {
+                            bg_rect.set_position(Vec3::new(
+                                content_pos.x,
+                                content_pos.y - 224.0,
+                                ORDER_ATTRIBUTE_RECT,
+                            ));
+                        }
+                        2 => {
+                            bg_rect.set_position(Vec3::new(
+                                content_pos.x + 32.0,
+                                content_pos.y - 256.0,
+                                ORDER_ATTRIBUTE_RECT,
+                            ));
+                        }
+                        _ => {
+                            bg_rect.set_position(Vec3::new(
+                                content_pos.x + 64.0,
+                                content_pos.y - 224.0,
+                                ORDER_ATTRIBUTE_RECT,
+                            ));
+                        }
+                    }
+                    gui.editor_rect.push(systems.gfx.add_rect(bg_rect, 0));
+                }
             }
             _ => {}
         }
@@ -982,5 +1065,33 @@ pub fn open_attribute_settings(
             }
         }
         _ => {}
+    }
+}
+
+fn click_dir_block(
+    systems: &mut DrawSetting,
+    gui: &mut Interface,
+    screen_pos: Vec2,
+) {
+    if gui.current_tab != TAB_PROPERTIES {
+        return;
+    }
+
+    for (index, rect) in gui.editor_rect.iter().enumerate() {
+        let pos = systems.gfx.get_pos(*rect);
+        if screen_pos.x >= pos.x
+            && screen_pos.x <= pos.x + 32.0
+            && screen_pos.y >= pos.y
+            && screen_pos.y <= pos.y + 32.0
+        {
+            gui.dir_select[index] = !gui.dir_select[index];
+            if gui.dir_select[index] {
+                systems.gfx.set_color(*rect, Color::rgba(220, 50, 50, 255));
+            } else {
+                systems
+                    .gfx
+                    .set_color(*rect, Color::rgba(100, 100, 100, 255));
+            }
+        }
     }
 }

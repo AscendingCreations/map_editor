@@ -1,5 +1,6 @@
 pub mod attributes;
 mod recording;
+use bit_op::{bit_u8::*, BitOp};
 
 use cosmic_text::{Attrs, Metrics, Weight};
 use graphics::*;
@@ -52,6 +53,66 @@ pub struct MapZoneSetting {
     pub npc_id: [Option<u64>; 5],
 }
 
+#[derive(Default, Clone, Copy)]
+pub struct DirBlockTile {
+    pub bg: usize,
+    pub dir: [usize; 4],
+    pub dir_data: u8,
+}
+
+impl DirBlockTile {
+    pub fn set_data(
+        &mut self,
+        systems: &mut DrawSetting,
+        dir_visible: [bool; 4],
+    ) {
+        let mut dir_data = 0;
+        if dir_visible[0] {
+            dir_data.set(B0);
+        }
+        if dir_visible[1] {
+            dir_data.set(B1);
+        }
+        if dir_visible[2] {
+            dir_data.set(B2);
+        }
+        if dir_visible[3] {
+            dir_data.set(B3);
+        }
+        self.dir_data = dir_data;
+
+        for (index, visible) in dir_visible.iter().enumerate() {
+            systems.gfx.set_visible(self.dir[index], *visible);
+        }
+    }
+
+    pub fn set_data_bit(&mut self, systems: &mut DrawSetting, dir: u8) {
+        self.dir_data = dir;
+
+        let mut dir_visible = [false; 4];
+        if self.dir_data.get(B0) == 0b00000001 {
+            dir_visible[0] = true;
+        }
+        if self.dir_data.get(B1) == 0b00000010 {
+            dir_visible[1] = true;
+        }
+        if self.dir_data.get(B2) == 0b00000100 {
+            dir_visible[2] = true;
+        }
+        if self.dir_data.get(B3) == 0b00001000 {
+            dir_visible[3] = true;
+        }
+
+        for (index, visible) in dir_visible.iter().enumerate() {
+            systems.gfx.set_visible(self.dir[index], *visible);
+        }
+    }
+
+    pub fn update(&mut self, systems: &mut DrawSetting) {
+        self.set_data_bit(systems, self.dir_data);
+    }
+}
+
 pub struct MapView {
     pub maps: Vec<Map>,
     pub link_map_selection: Vec<usize>,
@@ -61,6 +122,7 @@ pub struct MapView {
 
     pub map_attributes: Vec<MapAttributes>,
     pub map_zone: Vec<usize>,
+    pub map_dir_block: Vec<DirBlockTile>,
     pub map_zone_loc: [MapZone; 5],
     pub map_zone_setting: [MapZoneSetting; 5],
     pub fixed_weather: u8,
@@ -190,6 +252,7 @@ impl MapView {
         // Map Attributes & Map Zones
         let mut map_attributes = Vec::with_capacity(1024);
         let mut map_zone = Vec::with_capacity(1024);
+        let mut map_dir_block = Vec::with_capacity(1024);
         for i in 0..1024 {
             let pos = Vec2::new(
                 maps[0].pos.x + ((i % 32) * TEXTURE_SIZE) as f32,
@@ -231,6 +294,75 @@ impl MapView {
                 .set_color(Color::rgba(0, 0, 0, 0))
                 .set_use_camera(true);
             map_zone.push(systems.gfx.add_rect(zone_box, 0));
+
+            // Dir Block
+            let mut block_bg = Image::new(
+                Some(systems.resource.direction_block_tile.allocation),
+                &mut systems.renderer,
+                0,
+            );
+            block_bg.pos = Vec3::new(pos.x, pos.y, ORDER_MAP_DIRBLOCK);
+            block_bg.hw = Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+            block_bg.uv =
+                Vec4::new(0.0, 0.0, TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+            let bg = systems.gfx.add_image(block_bg, 0);
+            systems.gfx.set_visible(bg, false);
+
+            let mut dir0 = Image::new(
+                Some(systems.resource.direction_block_tile.allocation),
+                &mut systems.renderer,
+                0,
+            );
+            dir0.pos = Vec3::new(pos.x, pos.y, ORDER_MAP_DIRBLOCK);
+            dir0.hw = Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+            dir0.uv =
+                Vec4::new(20.0, 0.0, TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+
+            let mut dir1 = Image::new(
+                Some(systems.resource.direction_block_tile.allocation),
+                &mut systems.renderer,
+                0,
+            );
+            dir1.pos = Vec3::new(pos.x, pos.y, ORDER_MAP_DIRBLOCK);
+            dir1.hw = Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+            dir1.uv =
+                Vec4::new(40.0, 0.0, TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+
+            let mut dir2 = Image::new(
+                Some(systems.resource.direction_block_tile.allocation),
+                &mut systems.renderer,
+                0,
+            );
+            dir2.pos = Vec3::new(pos.x, pos.y, ORDER_MAP_DIRBLOCK);
+            dir2.hw = Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+            dir2.uv =
+                Vec4::new(60.0, 0.0, TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+
+            let mut dir3 = Image::new(
+                Some(systems.resource.direction_block_tile.allocation),
+                &mut systems.renderer,
+                0,
+            );
+            dir3.pos = Vec3::new(pos.x, pos.y, ORDER_MAP_DIRBLOCK);
+            dir3.hw = Vec2::new(TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+            dir3.uv =
+                Vec4::new(80.0, 0.0, TEXTURE_SIZE as f32, TEXTURE_SIZE as f32);
+
+            let dir = [
+                systems.gfx.add_image(dir0, 0),
+                systems.gfx.add_image(dir1, 0),
+                systems.gfx.add_image(dir2, 0),
+                systems.gfx.add_image(dir3, 0),
+            ];
+            for data in dir.iter() {
+                systems.gfx.set_visible(*data, false);
+            }
+
+            map_dir_block.push(DirBlockTile {
+                bg,
+                dir,
+                dir_data: 0,
+            })
         }
 
         Self {
@@ -241,6 +373,7 @@ impl MapView {
             preview_size: Vec2::new(1.0, 1.0),
             map_attributes,
             map_zone,
+            map_dir_block,
             map_zone_loc: Default::default(),
             map_zone_setting: Default::default(),
             record: Records::new(),
@@ -425,6 +558,16 @@ impl MapView {
                 }
             }
         }
+    }
+
+    pub fn set_dir_block(
+        &mut self,
+        systems: &mut DrawSetting,
+        set_pos: Vec2,
+        dir_visible: [bool; 4],
+    ) {
+        let tilepos = get_tile_pos(set_pos.x as i32, set_pos.y as i32);
+        self.map_dir_block[tilepos].set_data(systems, dir_visible);
     }
 
     pub fn set_tile_group(

@@ -236,6 +236,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc827186963e592360843fb5ba4b973e145841266c1357f7180c43526f2e5b61"
 
 [[package]]
+name = "bit_op"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65901b855caceba1e9057f79616f88b77c216834cee0728328c3458f200ebd3c"
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1339,6 +1345,7 @@ dependencies = [
  "ascending_graphics",
  "ascending_input",
  "backtrace",
+ "bit_op",
  "bytemuck",
  "chrono",
  "futures",

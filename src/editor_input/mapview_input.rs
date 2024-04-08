@@ -194,7 +194,23 @@ fn interact_with_map(
             }
             _ => {}
         },
-        TAB_PROPERTIES => {}
+        TAB_PROPERTIES => match gui.current_tool {
+            TOOL_DRAW => {
+                mapview.set_dir_block(systems, tile_pos, gui.dir_select);
+                database.set_map_change(mapview);
+                update_map_name(systems, gui, database);
+            }
+            TOOL_ERASE => {
+                mapview.set_dir_block(
+                    systems,
+                    tile_pos,
+                    [false, false, false, false],
+                );
+                database.set_map_change(mapview);
+                update_map_name(systems, gui, database);
+            }
+            _ => {}
+        },
         _ => {}
     }
 }

@@ -1105,3 +1105,322 @@ INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::fr
 WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
 WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
 INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+ERROR - PANIC: panicked at src\map_data.rs:283:56:
+index out of bounds: the len is 9 but the index is 32, BACKTRACE:    0: backtrace::backtrace::dbghelp::trace
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\dbghelp.rs:98
+   1: backtrace::backtrace::trace_unsynchronized<backtrace::capture::impl$1::create::closure_env$0>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\mod.rs:66
+   2: backtrace::backtrace::trace<backtrace::capture::impl$1::create::closure_env$0>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\mod.rs:53
+   3: backtrace::capture::Backtrace::create
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\capture.rs:176
+   4: backtrace::capture::Backtrace::new
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\capture.rs:140
+   5: mapeditor::main::async_block$0::closure$0
+             at src\main.rs:104
+   6: alloc::boxed::impl$49::call
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\alloc\src\boxed.rs:2030
+   7: std::panicking::rust_panic_with_hook
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:785
+   8: std::panicking::begin_panic_handler::closure$0
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:659
+   9: std::sys_common::backtrace::__rust_end_short_backtrace<std::panicking::begin_panic_handler::closure_env$0,never$>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\sys_common\backtrace.rs:171
+  10: std::panicking::begin_panic_handler
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:647
+  11: core::panicking::panic_fmt
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\core\src\panicking.rs:72
+  12: core::panicking::panic_bounds_check
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\core\src\panicking.rs:208
+  13: core::slice::index::impl$2::index<mapeditor::map_data::Tile>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\slice\index.rs:255
+  14: alloc::vec::impl$12::index<mapeditor::map_data::Tile,usize,alloc::alloc::Global>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\alloc\src\vec\mod.rs:2770
+  15: mapeditor::map_data::impl$0::load_map_data::closure$0::closure$0
+             at src\map_data.rs:283
+  16: core::iter::traits::iterator::Iterator::for_each::call::closure$0<i32,mapeditor::map_data::impl$0::load_map_data::closure$0::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:855
+  17: core::iter::traits::iterator::Iterator::fold<core::ops::range::Range<i32>,tuple$<>,core::iter::traits::iterator::Iterator::for_each::call::closure_env$0<i32,mapeditor::map_data::impl$0::load_map_data::closure$0::closure_env$0> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:2640
+  18: core::iter::traits::iterator::Iterator::for_each<core::ops::range::Range<i32>,mapeditor::map_data::impl$0::load_map_data::closure$0::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:858
+  19: mapeditor::map_data::impl$0::load_map_data::closure$0
+             at src\map_data.rs:264
+  20: core::iter::traits::iterator::Iterator::for_each::call::closure$0<i32,mapeditor::map_data::impl$0::load_map_data::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:855
+  21: core::iter::traits::iterator::Iterator::fold<core::ops::range::Range<i32>,tuple$<>,core::iter::traits::iterator::Iterator::for_each::call::closure_env$0<i32,mapeditor::map_data::impl$0::load_map_data::closure_env$0> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:2640
+  22: core::iter::traits::iterator::Iterator::for_each<core::ops::range::Range<i32>,mapeditor::map_data::impl$0::load_map_data::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:858
+  23: mapeditor::map_data::EditorData::load_map_data
+             at src\map_data.rs:263
+  24: mapeditor::main::async_block$0
+             at src\main.rs:218
+  25: tokio::runtime::park::impl$4::block_on::closure$0<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\park.rs:281
+  26: tokio::runtime::coop::with_budget
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\coop.rs:107
+  27: tokio::runtime::coop::budget
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\coop.rs:73
+  28: tokio::runtime::park::CachedParkThread::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\park.rs:281
+  29: tokio::runtime::context::blocking::BlockingRegionGuard::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\context\blocking.rs:66
+  30: tokio::runtime::scheduler::multi_thread::impl$0::block_on::closure$0<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\scheduler\multi_thread\mod.rs:87
+  31: tokio::runtime::context::runtime::enter_runtime<tokio::runtime::scheduler::multi_thread::impl$0::block_on::closure_env$0<enum2$<mapeditor::main::async_block_env$0> >,enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > 
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\context\runtime.rs:65
+  32: tokio::runtime::scheduler::multi_thread::MultiThread::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\scheduler\multi_thread\mod.rs:86
+  33: tokio::runtime::runtime::Runtime::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\runtime.rs:350
+  34: mapeditor::main
+             at src\main.rs:508
+  35: core::ops::function::FnOnce::call_once<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > (*)(),tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\ops\function.rs:250
+  36: std::sys_common::backtrace::__rust_begin_short_backtrace<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > (*)(),enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\sys_common\backtrace.rs:155
+  37: std::rt::lang_start::closure$0<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\rt.rs:166
+  38: std::rt::lang_start_internal::closure$2
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\rt.rs:148
+  39: std::panicking::try::do_call
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:554
+  40: std::panicking::try
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:518
+  41: std::panic::catch_unwind
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panic.rs:142
+  42: std::rt::lang_start_internal
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\rt.rs:148
+  43: std::rt::lang_start<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\rt.rs:165
+  44: main
+  45: invoke_main
+             at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+  46: __scrt_common_main_seh
+             at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+  47: BaseThreadInitThunk
+  48: RtlUserThreadStart
+
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+ERROR - PANIC: panicked at src\map_data.rs:283:56:
+index out of bounds: the len is 9 but the index is 32, BACKTRACE:    0: backtrace::backtrace::dbghelp::trace
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\dbghelp.rs:98
+   1: backtrace::backtrace::trace_unsynchronized<backtrace::capture::impl$1::create::closure_env$0>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\mod.rs:66
+   2: backtrace::backtrace::trace<backtrace::capture::impl$1::create::closure_env$0>
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\backtrace\mod.rs:53
+   3: backtrace::capture::Backtrace::create
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\capture.rs:176
+   4: backtrace::capture::Backtrace::new
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\backtrace-0.3.69\src\capture.rs:140
+   5: mapeditor::main::async_block$0::closure$0
+             at src\main.rs:104
+   6: alloc::boxed::impl$49::call
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\alloc\src\boxed.rs:2030
+   7: std::panicking::rust_panic_with_hook
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:785
+   8: std::panicking::begin_panic_handler::closure$0
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:659
+   9: std::sys_common::backtrace::__rust_end_short_backtrace<std::panicking::begin_panic_handler::closure_env$0,never$>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\sys_common\backtrace.rs:171
+  10: std::panicking::begin_panic_handler
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:647
+  11: core::panicking::panic_fmt
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\core\src\panicking.rs:72
+  12: core::panicking::panic_bounds_check
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\core\src\panicking.rs:208
+  13: core::slice::index::impl$2::index<mapeditor::map_data::Tile>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\slice\index.rs:255
+  14: alloc::vec::impl$12::index<mapeditor::map_data::Tile,usize,alloc::alloc::Global>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\alloc\src\vec\mod.rs:2770
+  15: mapeditor::map_data::impl$0::load_map_data::closure$0::closure$0
+             at src\map_data.rs:283
+  16: core::iter::traits::iterator::Iterator::for_each::call::closure$0<i32,mapeditor::map_data::impl$0::load_map_data::closure$0::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:855
+  17: core::iter::traits::iterator::Iterator::fold<core::ops::range::Range<i32>,tuple$<>,core::iter::traits::iterator::Iterator::for_each::call::closure_env$0<i32,mapeditor::map_data::impl$0::load_map_data::closure$0::closure_env$0> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:2640
+  18: core::iter::traits::iterator::Iterator::for_each<core::ops::range::Range<i32>,mapeditor::map_data::impl$0::load_map_data::closure$0::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:858
+  19: mapeditor::map_data::impl$0::load_map_data::closure$0
+             at src\map_data.rs:264
+  20: core::iter::traits::iterator::Iterator::for_each::call::closure$0<i32,mapeditor::map_data::impl$0::load_map_data::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:855
+  21: core::iter::traits::iterator::Iterator::fold<core::ops::range::Range<i32>,tuple$<>,core::iter::traits::iterator::Iterator::for_each::call::closure_env$0<i32,mapeditor::map_data::impl$0::load_map_data::closure_env$0> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:2640
+  22: core::iter::traits::iterator::Iterator::for_each<core::ops::range::Range<i32>,mapeditor::map_data::impl$0::load_map_data::closure_env$0>
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\iter\traits\iterator.rs:858
+  23: mapeditor::map_data::EditorData::load_map_data
+             at src\map_data.rs:263
+  24: mapeditor::main::async_block$0
+             at src\main.rs:218
+  25: tokio::runtime::park::impl$4::block_on::closure$0<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\park.rs:281
+  26: tokio::runtime::coop::with_budget
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\coop.rs:107
+  27: tokio::runtime::coop::budget
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\coop.rs:73
+  28: tokio::runtime::park::CachedParkThread::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\park.rs:281
+  29: tokio::runtime::context::blocking::BlockingRegionGuard::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\context\blocking.rs:66
+  30: tokio::runtime::scheduler::multi_thread::impl$0::block_on::closure$0<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\scheduler\multi_thread\mod.rs:87
+  31: tokio::runtime::context::runtime::enter_runtime<tokio::runtime::scheduler::multi_thread::impl$0::block_on::closure_env$0<enum2$<mapeditor::main::async_block_env$0> >,enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > 
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\context\runtime.rs:65
+  32: tokio::runtime::scheduler::multi_thread::MultiThread::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\scheduler\multi_thread\mod.rs:86
+  33: tokio::runtime::runtime::Runtime::block_on<enum2$<mapeditor::main::async_block_env$0> >
+             at C:\Users\Sherwin\.cargo\registry\src\index.crates.io-6f17d22bba15001f\tokio-1.36.0\src\runtime\runtime.rs:350
+  34: mapeditor::main
+             at src\main.rs:508
+  35: core::ops::function::FnOnce::call_once<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > (*)(),tuple$<> >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\core\src\ops\function.rs:250
+  36: std::sys_common::backtrace::__rust_begin_short_backtrace<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > (*)(),enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\sys_common\backtrace.rs:155
+  37: std::rt::lang_start::closure$0<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\rt.rs:166
+  38: std::rt::lang_start_internal::closure$2
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\rt.rs:148
+  39: std::panicking::try::do_call
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:554
+  40: std::panicking::try
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panicking.rs:518
+  41: std::panic::catch_unwind
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\panic.rs:142
+  42: std::rt::lang_start_internal
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10/library\std\src\rt.rs:148
+  43: std::rt::lang_start<enum2$<core::result::Result<tuple$<>,enum2$<ascending_graphics::error::AscendingError> > > >
+             at /rustc/30dfb9e046aeb878db04332c74de76e52fb7db10\library\std\src\rt.rs:165
+  44: main
+  45: invoke_main
+             at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+  46: __scrt_common_main_seh
+             at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+  47: BaseThreadInitThunk
+  48: RtlUserThreadStart
+
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }
+WARN - InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+INFO - Debug utils not enabled: debug_utils_user_data not passed to Instance::from_raw
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (AMD Radeon(TM) Graphics)
+WARN - Adapter is not Vulkan compliant, hiding adapter: Microsoft Direct3D12 (Microsoft Basic Render Driver)
+INFO - Adapter Vulkan AdapterInfo { name: "AMD Radeon(TM) Graphics", vendor: 4098, device: 5688, device_type: IntegratedGpu, driver: "AMD proprietary driver", driver_info: "24.1.1 (AMD proprietary shader compiler)", backend: Vulkan }

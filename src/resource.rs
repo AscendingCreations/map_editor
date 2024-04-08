@@ -59,6 +59,7 @@ pub struct TextureAllocation {
     pub selection_drop_button: TextureData,
     pub tileset_bg: TextureData,
     pub mapview_bg: TextureData,
+    pub direction_block_tile: TextureData,
     pub tilesheet: Vec<TilesheetData>,
     // This will be used for eyedropper tool
     pub tile_location: IndexMap<usize, (u32, u32, u32)>,
@@ -178,6 +179,15 @@ impl TextureAllocation {
                 .ok_or_else(|| OtherError::new("failed to upload image"))?,
         };
 
+        let direction_block_tile = TextureData {
+            name: "direction_block_tile.png".to_string(),
+            allocation: Texture::from_file(
+                "images/gui/direction_block_tile.png",
+            )?
+            .upload(&mut atlases[0], renderer)
+            .ok_or_else(|| OtherError::new("failed to upload image"))?,
+        };
+
         let mut tile_location = IndexMap::new();
         let mut tilesheet = Vec::new();
         let mut count = 0;
@@ -227,6 +237,7 @@ impl TextureAllocation {
             selection_drop_button,
             tileset_bg,
             mapview_bg,
+            direction_block_tile,
             tilesheet,
             tile_location,
         })
