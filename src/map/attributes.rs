@@ -1,9 +1,20 @@
+use bytey::{ByteBufferRead, ByteBufferWrite};
 use graphics::*;
 use serde::{Deserialize, Serialize};
 
 pub const MAX_ATTRIBUTE: usize = 8;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Clone,
+    Debug,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Default,
+    ByteBufferRead,
+    ByteBufferWrite,
+)]
 pub struct WarpData {
     pub map_x: i32,
     pub map_y: i32,
@@ -12,14 +23,33 @@ pub struct WarpData {
     pub tile_y: u32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(
+    Clone,
+    Debug,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Default,
+    ByteBufferRead,
+    ByteBufferWrite,
+)]
 pub struct ItemSpawnData {
     pub index: u32,
     pub amount: u16,
     pub timer: u64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(
+    Clone,
+    Debug,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    ByteBufferRead,
+    ByteBufferWrite,
+)]
 pub enum MapAttribute {
     Walkable,
     Blocked,

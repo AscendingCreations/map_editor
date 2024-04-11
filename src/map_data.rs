@@ -1,9 +1,11 @@
 use graphics::*;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::path::Path;
+use std::{fs::OpenOptions, io::Write};
+
+use bytey::{ByteBuffer, ByteBufferError, ByteBufferRead, ByteBufferWrite};
 
 use crate::{attributes::*, map::*, DrawSetting, Interface};
 
@@ -179,6 +181,7 @@ impl EditorData {
             mapdata.music = mapview.music.clone();
             if should_save {
                 mapdata.save_file().unwrap();
+                mapdata.save_file_bin().unwrap();
                 // Since we have saved the map, let's mark the map as 'no change'
                 if let Some(did_change) =
                     self.did_map_change.get_mut(&self.current_index)
@@ -212,6 +215,7 @@ impl EditorData {
                     self.save_map_data(mapview, None);
                 } else {
                     mapdata.save_file().unwrap();
+                    mapdata.save_file_bin().unwrap();
                 }
             }
             if should_remove {
@@ -425,7 +429,9 @@ impl EditorData {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(
+    Clone, Debug, Serialize, Deserialize, ByteBufferRead, ByteBufferWrite,
+)]
 pub struct MapPosition {
     pub x: i32,
     pub y: i32,
@@ -433,7 +439,16 @@ pub struct MapPosition {
 }
 
 #[derive(
-    Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Default, Debug,
+    Copy,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Default,
+    Debug,
+    ByteBufferRead,
+    ByteBufferWrite,
 )]
 pub enum Weather {
     #[default]
@@ -449,12 +464,16 @@ pub enum Weather {
     Windy,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(
+    Clone, Debug, Serialize, Deserialize, ByteBufferRead, ByteBufferWrite,
+)]
 pub struct Tile {
     pub id: Vec<u32>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(
+    Clone, Debug, Serialize, Deserialize, ByteBufferRead, ByteBufferWrite,
+)]
 pub struct MapData {
     pub position: MapPosition,
     pub tile: Vec<Tile>,
@@ -503,6 +522,42 @@ impl MapData {
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
                 Ok(())
+            }
+            Err(e) => Err(AscendingError::Other(OtherError::new(&format!(
+                "Failed to open {}, Err {:?}",
+                name, e
+            )))),
+        }
+    }
+
+    pub fn save_file_bin(&self) -> Result<(), AscendingError> {
+        let name = format!(
+            "./data/maps/{}_{}_{}.bin",
+            self.position.x, self.position.y, self.position.group
+        );
+
+        let mut buf = match ByteBuffer::new() {
+            Ok(data) => data,
+            Err(_) => return Ok(()),
+        };
+
+        buf.write(self).unwrap();
+
+        match OpenOptions::new()
+            .truncate(true)
+            .write(true)
+            .create(true)
+            .open(&name)
+        {
+            Ok(mut file) => {
+                if let Err(e) = file.write(buf.as_slice()) {
+                    Err(AscendingError::Other(OtherError::new(&format!(
+                        "File Error Err {:?}",
+                        e
+                    ))))
+                } else {
+                    Ok(())
+                }
             }
             Err(e) => Err(AscendingError::Other(OtherError::new(&format!(
                 "Failed to open {}, Err {:?}",

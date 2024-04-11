@@ -317,6 +317,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2bd12c1caf447e69cd4528f47f94d203fd2582878ecb9e9465484c4148a8223"
 
 [[package]]
+name = "bytey"
+version = "0.3.0"
+source = "git+https://github.com/Stefanowhb/bytey.git#50a2a28d7aba3d43c3987828dc4a9c6f41115c94"
+dependencies = [
+ "bytey_byte_buffer",
+ "bytey_derive",
+]
+
+[[package]]
+name = "bytey_byte_buffer"
+version = "0.2.1"
+source = "git+https://github.com/Stefanowhb/bytey.git#50a2a28d7aba3d43c3987828dc4a9c6f41115c94"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
+name = "bytey_derive"
+version = "0.2.0"
+source = "git+https://github.com/Stefanowhb/bytey.git#50a2a28d7aba3d43c3987828dc4a9c6f41115c94"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.52",
+]
+
+[[package]]
 name = "calloop"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1347,6 +1374,7 @@ dependencies = [
  "backtrace",
  "bit_op",
  "bytemuck",
+ "bytey",
  "chrono",
  "futures",
  "glam",
